@@ -29,13 +29,13 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.GenerateID(): cv.declare_id(SSWTDSComponent),
             cv.Optional(CONF_SOURCE_TDS): sensor.sensor_schema(
-                UNIT_PARTS_PER_MILLION, ICON_WATER_PERCENT, 1, DEVICE_CLASS_EMPTY, STATE_CLASS_MEASUREMENT
+                UNIT_PARTS_PER_MILLION, ICON_WATER_PERCENT, 0, DEVICE_CLASS_EMPTY, STATE_CLASS_MEASUREMENT
             ),
             cv.Optional(CONF_CLEAN_TDS): sensor.sensor_schema(
-                UNIT_PARTS_PER_MILLION, ICON_WATER_PERCENT, 1, DEVICE_CLASS_EMPTY, STATE_CLASS_MEASUREMENT
+                UNIT_PARTS_PER_MILLION, ICON_WATER_PERCENT, 0, DEVICE_CLASS_EMPTY, STATE_CLASS_MEASUREMENT
             ),
             cv.Optional(CONF_TEMPERATURE): sensor.sensor_schema(
-                UNIT_CELSIUS, ICON_THERMOMETER, 1, DEVICE_CLASS_TEMPERATURE, STATE_CLASS_MEASUREMENT
+                UNIT_CELSIUS, ICON_THERMOMETER, 0, DEVICE_CLASS_TEMPERATURE, STATE_CLASS_MEASUREMENT
             ),
         }
     )
