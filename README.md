@@ -1,5 +1,14 @@
 # esphome-custom-components
 esphome的一些新增组件支持
+## 如何使用
+请参考[esphome文档](https://www.esphome.io/components/external_components.html)。
+```yaml
+#引用组件库示例
+external_components:
+  - source:
+      type: git
+      url: https://github.com/ryanh7/esphome-custom-components
+```
 
 ## 组件列表
 * ssw_tds
