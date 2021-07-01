@@ -11,9 +11,21 @@ external_components:
 ```
 
 ## 组件列表
+* 小米电动牙刷T500
+```yaml
+#配置示例
+esp32_ble_tracker:
+sensor:
+  - platform: xiaomi_m1st500
+    mac_address: "F0:A9:97:FF:03:7E" #你的牙刷mac地址
+    score:
+      name: "Toothbrush Score" #刷牙分数，在一次完整的2分钟刷牙后得出
+    battery_level:
+       name: "Toothbrush Battery Level" #电池电量
+```
 * ssw_tds
 >支持型号为ssw-tds-2u的一款基于urat协议的2路带水温tds检测仪。可输出双路tds及一路水温。
-```yml
+```yaml
 #配置示例
 uart:
   id: uart_tds
