@@ -36,8 +36,14 @@ class AudioOutputI2SNoDACWithVolume : public AudioOutputI2SNoDAC {
   AudioOutputI2SNoDACWithVolume(int port = 0) : AudioOutputI2SNoDAC(port) {}
   virtual bool ConsumeSample(int16_t sample[2]) override {
     int16_t sample_adjust[2];
-    sample_adjust[0] = (int16_t) (sample[0] * volume_);
-    sample_adjust[1] = (int16_t) (sample[1] * volume_);
+    double sample_rescale = (double) sample[0] * (double) volume_;
+    sample_rescale = (sample_rescale < -32768) ? -32768 : sample_rescale;
+    sample_rescale = (sample_rescale > 32767) ? 32767 : sample_rescale;
+    sample_adjust[0] = (int16_t) (sample_rescale);
+    sample_rescale = (double) sample[1] * (double) volume_;
+    sample_rescale = (sample_rescale < -32768) ? -32768 : sample_rescale;
+    sample_rescale = (sample_rescale > 32767) ? 32767 : sample_rescale;
+    sample_adjust[1] = (int16_t) (sample_rescale);
     return AudioOutputI2SNoDAC::ConsumeSample(sample_adjust);
   }
   void set_volume(float volume) { volume_ = volume; }

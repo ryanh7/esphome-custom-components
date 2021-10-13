@@ -11,16 +11,6 @@ namespace audio_player {
 
 static const char *const TAG = "audio_player";
 
-// // Called when there's a warning or error (like a buffer underflow or decode hiccup)
-// void StatusCallback(void *cbData, int code, const char *string) {
-//   const char *ptr = reinterpret_cast<const char *>(cbData);
-//   // Note that the string may be in PROGMEM, so copy it to RAM for printf
-//   char s1[64];
-//   strncpy_P(s1, string, sizeof(s1));
-//   s1[sizeof(s1) - 1] = 0;
-//   ESP_LOGD(TAG, "STATUS(%s) '%d' = '%s'\n", ptr, code, s1);
-// }
-
 void AudioPlayerComponent::setup() {
   audioLogger = &logger_;
 
@@ -87,7 +77,6 @@ void AudioPlayerComponent::play(const std::string &url) {
   ESP_LOGD(TAG, "play url %s", url.c_str());
   file_ = new AudioFileSourceHTTPStream(url.c_str());
   buffer_ = new AudioFileSourceBuffer(file_, buffer_size_);
-  // buffer_->RegisterStatusCB(StatusCallback, (void *) "buffer");
 
   if (!generator_->begin(buffer_, out_)) {
     ESP_LOGE(TAG, "play failed");
