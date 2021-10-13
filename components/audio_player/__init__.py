@@ -33,7 +33,7 @@ CONFIG_SCHEMA = cv.All(
             cv.GenerateID(): cv.declare_id(AudioPlayerComponent),
             cv.Optional(CONF_PIN): pins.gpio_output_pin_schema,
             cv.Optional(CONF_VOLUME, default=100): cv.All(
-                cv.percentage_int, cv.Range(min=1, max=500)
+                cv.percentage_int, cv.Range(min=1, max=1000)
             ),
             cv.Optional(CONF_BUFFER_SIZE, default=1024): cv.int_range(min=256, max=81920)
         }
