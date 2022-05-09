@@ -29,18 +29,18 @@ CONFIG_SCHEMA = (
             cv.GenerateID(): cv.declare_id(XiaomiM1ST500),
             cv.Required(CONF_MAC_ADDRESS): cv.mac_address,
             cv.Optional(CONF_SCORE): sensor.sensor_schema(
-                UNIT_EMPTY,
-                ICON_ACCOUNT_CHECK,
-                0,
-                DEVICE_CLASS_EMPTY,
-                STATE_CLASS_MEASUREMENT,
+                unit_of_measurement=UNIT_EMPTY,
+                icon=ICON_ACCOUNT_CHECK,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_EMPTY,
+                state_class=STATE_CLASS_MEASUREMENT,
             ),
             cv.Optional(CONF_BATTERY_LEVEL): sensor.sensor_schema(
-                UNIT_PERCENT,
-                ICON_EMPTY,
-                0,
-                DEVICE_CLASS_BATTERY,
-                STATE_CLASS_MEASUREMENT,
+                unit_of_measurement=UNIT_PERCENT,
+                icon=ICON_EMPTY,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_BATTERY,
+                state_class=STATE_CLASS_MEASUREMENT,
             ),
         }
     )
