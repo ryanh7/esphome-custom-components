@@ -11,6 +11,7 @@ from esphome.const import (
     DEVICE_CLASS_SMOKE,
     DEVICE_CLASS_EMPTY,
     CONF_ID,
+    CONF_BINDKEY,
 )
 
 CONF_STATUS = "status"
@@ -46,6 +47,7 @@ CONFIG_SCHEMA = (
         {
             cv.GenerateID(): cv.declare_id(XiaomiSmokeDetector),
             cv.Required(CONF_MAC_ADDRESS): cv.mac_address,
+            cv.Required(CONF_BINDKEY): cv.bind_key,
             cv.Optional(CONF_ALERT): binary_sensor.binary_sensor_schema(
                 SmokerDetectorAlarmSensor,
                 device_class=DEVICE_CLASS_SMOKE,
@@ -81,6 +83,7 @@ async def to_code(config):
     await esp32_ble_tracker.register_ble_device(var, config)
 
     cg.add(var.set_address(config[CONF_MAC_ADDRESS].as_hex))
+    cg.add(var.set_bindkey(config[CONF_BINDKEY]))
     
     if CONF_ALERT in config:
         sens = await binary_sensor.new_binary_sensor(config[CONF_ALERT])

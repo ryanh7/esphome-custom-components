@@ -5,7 +5,7 @@
 #include "esphome/components/binary_sensor/binary_sensor.h"
 #include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
-#include "xiaomi_toothbrush_ble.h"
+#include "xiaomi_smoke_ble.h"
 
 #ifdef USE_ESP32
 
@@ -21,6 +21,7 @@ class StatusListener {
 class XiaomiSmokeDetector : public Component, public esp32_ble_tracker::ESPBTDeviceListener {
  public:
   void set_address(uint64_t address) { address_ = address; }
+  void set_bindkey(const std::string &bindkey);
 
   bool parse_device(const esp32_ble_tracker::ESPBTDevice &device) override;
 
@@ -33,6 +34,7 @@ class XiaomiSmokeDetector : public Component, public esp32_ble_tracker::ESPBTDev
   uint64_t address_;
   std::vector<StatusListener *> listeners_;
   sensor::Sensor *battery_level_{nullptr};
+  uint8_t bindkey_[16];
 };
 
 class SmokerDetectorAlarmSensor : public binary_sensor::BinarySensor, public StatusListener {

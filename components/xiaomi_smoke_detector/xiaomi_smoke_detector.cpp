@@ -22,21 +22,22 @@ bool XiaomiSmokeDetector::parse_device(const esp32_ble_tracker::ESPBTDevice &dev
 
   bool success = false;
   for (auto &service_data : device.get_service_datas()) {
-    auto res = xiaomi_toothbrush_ble::parse_xiaomi_header(service_data);
+    auto res = xiaomi_smoke_ble::parse_xiaomi_header(service_data);
     if (!res.has_value()) {
       continue;
     }
     if (res->is_duplicate) {
       continue;
     }
-    if (res->has_encryption) {
-      ESP_LOGVV(TAG, "parse_device(): payload decryption is currently not supported on this device.");
+    if (res->has_encryption &&
+        (!(xiaomi_smoke_ble::decrypt_xiaomi_payload(const_cast<std::vector<uint8_t> &>(service_data.data), this->bindkey_,
+                                              this->address_)))) {
       continue;
     }
-    if (!(xiaomi_toothbrush_ble::parse_xiaomi_message(service_data.data, *res))) {
+    if (!(xiaomi_smoke_ble::parse_xiaomi_message(service_data.data, *res))) {
       continue;
     }
-    if (!(xiaomi_toothbrush_ble::report_xiaomi_results(res, device.address_str()))) {
+    if (!(xiaomi_smoke_ble::report_xiaomi_results(res, device.address_str()))) {
       continue;
     }
     if (res->event.has_value())
@@ -55,6 +56,18 @@ bool XiaomiSmokeDetector::parse_device(const esp32_ble_tracker::ESPBTDevice &dev
   return true;
 }
 
+void XiaomiSmokeDetector::set_bindkey(const std::string &bindkey) {
+  memset(bindkey_, 0, 16);
+  if (bindkey.size() != 32) {
+    return;
+  }
+  char temp[3] = {0};
+  for (int i = 0; i < 16; i++) {
+    strncpy(temp, &(bindkey.c_str()[i * 2]), 2);
+    bindkey_[i] = std::strtoul(temp, nullptr, 16);
+  }
+}
+
 void SmokerDetectorStatusTextSensor::on_change(uint8_t status) {
   switch (status) {
     case 0x00:
@@ -67,7 +80,7 @@ void SmokerDetectorStatusTextSensor::on_change(uint8_t status) {
       this->publish_state("fault");
       break;
     case 0x03:
-      this->publish_state("self check");
+      this->publish_state("self-check");
       break;
     case 0x04:
       this->publish_state("analog alert");
