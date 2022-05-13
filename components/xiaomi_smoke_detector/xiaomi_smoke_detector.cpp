@@ -20,7 +20,6 @@ bool XiaomiSmokeDetector::parse_device(const esp32_ble_tracker::ESPBTDevice &dev
   }
   ESP_LOGVV(TAG, "parse_device(): MAC address %s found.", device.address_str().c_str());
 
-  bool success = false;
   for (auto &service_data : device.get_service_datas()) {
     auto res = xiaomi_smoke_ble::parse_xiaomi_header(service_data);
     if (!res.has_value()) {
@@ -46,11 +45,6 @@ bool XiaomiSmokeDetector::parse_device(const esp32_ble_tracker::ESPBTDevice &dev
       }
     if (res->battery_level.has_value() && this->battery_level_ != nullptr)
       this->battery_level_->publish_state(*res->battery_level);
-    success = true;
-  }
-
-  if (!success) {
-    return false;
   }
 
   return true;
