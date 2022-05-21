@@ -56,6 +56,23 @@ sensor:
     battery_level:
        name: "Toothbrush Battery Level" #电池电量
 ```
+* 小米烟雾报警器蓝牙版mcn02
+```yaml
+#配置示例
+esp32_ble_tracker:
+sensor:
+  - platform: xiaomi_smoke_detector
+    mac_address: "00:00:00:00:00:00" #烟雾报警器蓝牙mac地址
+    bindkey: "0000000000000000000000000000000" #token
+    alert: # 可选：报警 binary sensor
+      name: "Smoke Detector Alert" 
+    status: # 可选：报警器状态 sensor
+      name: "Smoke Detector Status"
+    status_text: # 可选：报警器文本状态 text sensor
+      name: "Smoke Detector Status Text"
+    battery_level: # 可选：报警器电量 sensor
+      name: "Smoke Detector Battery"
+```
 * ssw_tds
 >支持型号为ssw-tds-2u的一款基于urat协议的2路带水温tds检测仪。可输出双路tds及一路水温。
 ```yaml
