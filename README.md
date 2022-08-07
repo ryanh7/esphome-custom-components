@@ -93,3 +93,40 @@ sensor:
       name: "Water Temperature" #水温
     update_interval: 5s # 可选，更新间隔默认5s
 ```
+
+* CEM5855H
+> 支持某国产芯片的毫米波雷达，同样适用于LD1115H。只需要连接VCC,GND,TX(CEM5855H)->RX(MCU)。阈值配置参考[Number](https://esphome.io/components/number/index.html)
+```yaml
+#配置示例
+logger:
+  level: VERBOSE #如果需要在日志中查看串口信息，设置日志级别为VERBOSE
+
+uart:
+  id: uart_cem5855h
+  baud_rate: 115200
+  rx_pin: RX #你的RX引脚
+  
+binary_sensor:
+  - platform: cem5855h
+    threshold: #（可选）触发移动的阈值，支持数字或者Number(esphome)
+      moving: 250 #示例配置-数字
+      occupancy: #示例配置-esphome number
+        name: "occ"
+        value: 250 #阈值
+        min_value: 10 #可调节的最小阈值
+        max_value: 99999 #可调节的最大阈值
+        step: 10 #单步调节量
+
+    moving: #（可选）有人移动传感器
+      name: mov
+      filters:
+        - delayed_off: 3s
+    occupancy: #（可选）有人静止传感器
+      name: occ
+      filters:
+        - delayed_off: 3s
+    motion: #（可选）人在传感器
+      name: motion
+      filters:
+        - delayed_off: 3s #设置一个合适的状态持续时间
+```
