@@ -62,6 +62,7 @@ bool CEM5855hComponent::parse_(uint8_t byte) {
           this->moving_sensor_->publish_state(false);
         }
       }
+      break;
     }
   } else if (strncmp("occ, ", raw, 5) == 0) {
     for (int i = 5; i < at; i++) {
@@ -76,6 +77,7 @@ bool CEM5855hComponent::parse_(uint8_t byte) {
           this->occupancy_sensor_->publish_state(false);
         }
       }
+      break;
     }
   }
 
