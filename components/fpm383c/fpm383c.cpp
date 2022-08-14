@@ -111,7 +111,6 @@ int FPM383cComponent::parse_(uint8_t byte) {
 
   if (at == 9) {
     frame_length = encode_uint16(raw[8], raw[9]) + 11;
-    ESP_LOGD(TAG, "frame length=%d", frame_length);
     return frame_length > 17 && frame_length < 30;
   }
 
@@ -119,11 +118,11 @@ int FPM383cComponent::parse_(uint8_t byte) {
     return true;
 
   if (!this->check_()) {
-    ESP_LOGE(TAG, "checksum failed!");
+    ESP_LOGE(TAG, "checksum failed! ACK:%02X %02X", raw[15], raw[16]);
     return false;
   }
 
-  ESP_LOGD(TAG, "response: ACK=%02X %02X, error=%02X%02X%02X%02X", raw[15], raw[16], raw[17], raw[18], raw[19],
+  ESP_LOGV(TAG, "response: ACK=%02X %02X, error=%02X%02X%02X%02X", raw[15], raw[16], raw[17], raw[18], raw[19],
            raw[20]);
 
   uint16_t ack = encode_uint16(raw[15], raw[16]);
@@ -148,7 +147,7 @@ int FPM383cComponent::parse_(uint8_t byte) {
         uint16_t sucessed = encode_uint16(raw[21], raw[22]);
         uint16_t score = encode_uint16(raw[23], raw[24]);
         uint16_t id = encode_uint16(raw[25], raw[26]);
-        ESP_LOGE(TAG, "sucessed: %04X, id:%04X, score:%04X", sucessed, id, score);
+        ESP_LOGV(TAG, "sucessed: %04X, id:%04X, score:%04X", sucessed, id, score);
         on_match_((id != 0xFFFF), id, score);
       } else if (error == 0x04) {
         this->status_ = STATUS_MATCHING;
