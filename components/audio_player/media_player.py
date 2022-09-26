@@ -21,7 +21,7 @@ CONF_DOUT = "dout"
 
 audio_player_ns = cg.esphome_ns.namespace("audio_player")
 AudioMediaPlayer = audio_player_ns.class_(
-    "AudioMediaPlayer", cg.Component
+    "AudioMediaPlayer", cg.Component, media_player.MediaPlayer
 )
 
 PlayerOutputI2SNoDAC = audio_player_ns.class_(
