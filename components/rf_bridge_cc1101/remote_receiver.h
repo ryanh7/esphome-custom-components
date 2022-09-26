@@ -6,7 +6,7 @@
 namespace esphome {
 namespace rf_bridge_cc1101 {
 
-#ifdef ARDUINO_ARCH_ESP8266
+#ifdef USE_ESP8266
 struct RemoteReceiverStore {
   static void gpio_intr(RemoteReceiverStore *arg);
 
@@ -21,22 +21,22 @@ struct RemoteReceiverStore {
   bool overflow{false};
   uint32_t buffer_size{1000};
   uint8_t filter_us{10};
-  ISRInternalGPIOPin *pin;
+  ISRInternalGPIOPin pin;
 };
 #endif
 
 class RemoteReceiver : public remote_base::RemoteReceiverBase
-#ifdef ARDUINO_ARCH_ESP32
+#ifdef USE_ESP32
     ,
-                       public remote_base::RemoteRMTChannel
+                                public remote_base::RemoteRMTChannel
 #endif
 {
  public:
-#ifdef ARDUINO_ARCH_ESP32
-  RemoteReceiver(GPIOPin *pin, uint8_t mem_block_num = 1)
+#ifdef USE_ESP32
+  RemoteReceiver(InternalGPIOPin *pin, uint8_t mem_block_num = 1)
       : RemoteReceiverBase(pin), remote_base::RemoteRMTChannel(mem_block_num) {}
 #else
-  RemoteReceiver(GPIOPin *pin) : RemoteReceiverBase(pin) {}
+  RemoteReceiver(InternalGPIOPin *pin) : RemoteReceiverBase(pin) {}
 #endif
   void setup();
   void loop();
@@ -49,13 +49,13 @@ class RemoteReceiver : public remote_base::RemoteReceiverBase
   void set_idle_us(uint32_t idle_us) { this->idle_us_ = idle_us; }
 
  protected:
-#ifdef ARDUINO_ARCH_ESP32
+#ifdef USE_ESP32
   void decode_rmt_(rmt_item32_t *item, size_t len);
   RingbufHandle_t ringbuf_;
   esp_err_t error_code_{ESP_OK};
 #endif
 
-#ifdef ARDUINO_ARCH_ESP8266
+#ifdef USE_ESP8266
   RemoteReceiverStore store_;
   HighFrequencyLoopRequester high_freq_;
 #endif
