@@ -154,3 +154,57 @@ sensor: #示例，显示设备信号强度
     mac_address: C4:C0:82:0F:E8:54 #安卓手机蓝牙mac地址
     name: "android"
 ```
+* fpm383c
+> 支持海凌科fpm383c电容式指纹模块
+```yaml
+#配置示例
+uart: #指定串口
+  id: uart_fpm383c
+  baud_rate: 57600
+  rx_pin: GPIO26
+  tx_pin: GPIO25
+
+fpm383c:
+  on_touch: #手指触摸模块时触发
+    - light.turn_on: #示例，打开黄灯
+        id: fpm383c_id
+        brightness: 50%
+        red: 100%
+        green: 100%
+        blue: 0
+  on_release: #手指松开时触发
+    - light.turn_on: #示例，打开蓝灯
+        id: fpm383c_id
+        brightness: 50%
+        red: 0
+        green: 0
+        blue: 100%
+  on_finger_scan_unmatched: #指纹匹配失败时触发
+    - light.turn_on: #示例，打开红灯
+        id: fpm383c_id
+        brightness: 50%
+        red: 100%
+        green: 0
+        blue: 0
+  on_finger_scan_matched: #指纹匹配成功时触发
+    - light.turn_on: #示例，打开绿灯
+        id: fpm383c_id
+        brightness: 50%
+        red: 0
+        green: 100%
+        blue: 0
+  on_finger_register_progress: #指纹注册进度，可以获取当前指纹编号和注册进度
+    then:
+    - lambda: |-
+        ESP_LOGD("PROGRESS", "id: %04X, progress: %d%%", x.id, x.progress_in_percent); // 示例，打印进度日志
+
+light: 
+  - platform: fpm383c #配置RGB指示灯，所有颜色都会被重新映射到6种颜色（白色映射到红色）
+    name: "指示灯"
+    id: fpm383c_id
+```
+> 可用动作
+> - fpm383c.register 注册新指纹
+> - fpm383c.clear 删除已注册指纹
+> - fpm383c.cancel 取消指纹匹配或注册
+> - fpm383c.reset 重启指纹模块
