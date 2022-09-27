@@ -5,13 +5,13 @@ esphome的一些新增组件支持
 ```yaml
 #引用组件库示例
 external_components:
-  - source:
-      type: git
-      url: https://github.com/ryanh7/esphome-custom-components
+  - source: github://ryanh7/esphome-custom-components
+    components: [ example ]
 ```
 
 ## 组件列表
-* esp8266 通过http流播放wav
+* audio_player
+> esp8266 通过http流播放wav
 ```yaml
 media_player:
   - platform: audio_player
@@ -24,7 +24,8 @@ media_player:
       wclk: GPIO3
       dout: GPIO2
 ```
-* cc1101 射频收发
+* rf_bridge_cc1101
+> cc1101 射频收发
 ```yaml
 rf_bridge_cc1101:
   spi_id: cc1101 #与cc1101连接的spi总线id
@@ -47,7 +48,8 @@ binary_sensor:
     code: "101010111110010010101010" #dump中打印的值
     protocol: 1
 ```
-* 小米电动牙刷T500
+* xiaomi_m1st500
+> 小米电动牙刷T500
 ```yaml
 #配置示例
 esp32_ble_tracker:
@@ -59,7 +61,8 @@ sensor:
     battery_level:
        name: "Toothbrush Battery Level" #电池电量
 ```
-* 小米烟雾报警器蓝牙版mcn02
+* xiaomi_smoke_detector
+> 小米烟雾报警器蓝牙版mcn02
 ```yaml
 #配置示例
 esp32_ble_tracker:
@@ -77,7 +80,7 @@ sensor:
       name: "Smoke Detector Battery"
 ```
 * ssw_tds
->支持型号为ssw-tds-2u的一款基于urat协议的2路带水温tds检测仪。可输出双路tds及一路水温。
+> 支持型号为ssw-tds-2u的一款基于urat协议的2路带水温tds检测仪。可输出双路tds及一路水温。
 ```yaml
 #配置示例
 uart:
@@ -97,7 +100,7 @@ sensor:
     update_interval: 5s # 可选，更新间隔默认5s
 ```
 
-* CEM5855H
+* cem5855h
 > 支持某国产芯片的毫米波雷达，同样适用于LD1115H。只需要连接VCC,GND,TX(CEM5855H)->RX(MCU)。阈值配置参考[Number](https://esphome.io/components/number/index.html)
 ```yaml
 #配置示例
