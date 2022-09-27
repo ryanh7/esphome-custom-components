@@ -5,23 +5,27 @@ esphome的一些新增组件支持
 ```yaml
 #引用组件库示例
 external_components:
-  - source:
-      type: git
-      url: https://github.com/ryanh7/esphome-custom-components
+  - source: github://ryanh7/esphome-custom-components
+    components: [ example ]
 ```
 
 ## 组件列表
-* esp8266 通过http流播放wav
+* audio_player
+> esp8266 通过http流播放wav
 ```yaml
-audio_player:
-  volume: 100% #可选，基准音量
-  buffer_size: 1024 #可选，http流缓冲区大小
-
-text_sensor:
-  - platform: audio_player #示例，绑定一个传感器用于表明播放器状态
-    name: "Media Player Status"
+media_player:
+  - platform: audio_player
+    name: "Media Player"
+    volume: 100% #可选，基准音量
+    buffer_size: 10240 #可选，http流缓冲区大小
+    i2sNoDAC: {} # 二选一，RX直接输出音频
+    i2s: # 二选一，外置DAC输出
+      bclk: GPIO15
+      wclk: GPIO3
+      dout: GPIO2
 ```
-* cc1101 射频收发
+* rf_bridge_cc1101
+> cc1101 射频收发
 ```yaml
 rf_bridge_cc1101:
   spi_id: cc1101 #与cc1101连接的spi总线id
@@ -44,7 +48,8 @@ binary_sensor:
     code: "101010111110010010101010" #dump中打印的值
     protocol: 1
 ```
-* 小米电动牙刷T500
+* xiaomi_m1st500
+> 小米电动牙刷T500
 ```yaml
 #配置示例
 esp32_ble_tracker:
@@ -56,7 +61,8 @@ sensor:
     battery_level:
        name: "Toothbrush Battery Level" #电池电量
 ```
-* 小米烟雾报警器蓝牙版mcn02
+* xiaomi_smoke_detector
+> 小米烟雾报警器蓝牙版mcn02
 ```yaml
 #配置示例
 esp32_ble_tracker:
@@ -74,7 +80,7 @@ sensor:
       name: "Smoke Detector Battery"
 ```
 * ssw_tds
->支持型号为ssw-tds-2u的一款基于urat协议的2路带水温tds检测仪。可输出双路tds及一路水温。
+> 支持型号为ssw-tds-2u的一款基于urat协议的2路带水温tds检测仪。可输出双路tds及一路水温。
 ```yaml
 #配置示例
 uart:
@@ -94,7 +100,7 @@ sensor:
     update_interval: 5s # 可选，更新间隔默认5s
 ```
 
-* CEM5855H
+* cem5855h
 > 支持某国产芯片的毫米波雷达，同样适用于LD1115H。只需要连接VCC,GND,TX(CEM5855H)->RX(MCU)。阈值配置参考[Number](https://esphome.io/components/number/index.html)
 ```yaml
 #配置示例
@@ -129,4 +135,22 @@ binary_sensor:
       name: motion
       filters:
         - delayed_off: 3s #设置一个合适的状态持续时间
+```
+* esp32_bt_tracker, bt_presence, bt_rssi
+> 通过经典蓝牙扫描发现蓝牙设备，蓝牙设备须处于可被发现状态
+```yaml
+#配置示例
+esp32_bt_tracker: #启用经典蓝牙扫描组件，控制台会以debug消息打印扫描到的未设置sensor的设备mac
+  scan_parameters:
+      duration: 5s #每次扫描持续时间，影响不大
+
+binary_sensor: #示例，扫描到设备
+  - platform: bt_presence
+    mac_address: C4:C0:82:0F:E8:54 #安卓手机蓝牙mac地址
+    name: "android"
+
+sensor: #示例，显示设备信号强度
+  - platform: bt_rssi
+    mac_address: C4:C0:82:0F:E8:54 #安卓手机蓝牙mac地址
+    name: "android"
 ```

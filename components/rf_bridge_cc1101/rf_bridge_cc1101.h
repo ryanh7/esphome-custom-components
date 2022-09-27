@@ -3,7 +3,7 @@
 #include <utility>
 
 #include "esphome/core/component.h"
-#include "esphome/core/esphal.h"
+#include "esphome/core/hal.h"
 #include "esphome/components/spi/spi.h"
 #include "esphome/core/automation.h"
 
@@ -19,7 +19,7 @@ class RFBridgeComponent : public Component,
                           public spi::SPIDevice<spi::BIT_ORDER_MSB_FIRST, spi::CLOCK_POLARITY_LOW,
                                                 spi::CLOCK_PHASE_LEADING, spi::DATA_RATE_4MHZ> {
  public:
-  RFBridgeComponent(GPIOPin *pin);
+  RFBridgeComponent(InternalGPIOPin *pin);
   RFBridgeComponent() {}
   void setup() override;
   void loop() override;
@@ -50,7 +50,7 @@ class RFBridgeComponent : public Component,
   void split_MDMCFG2();
   void reset();
 
-  GPIOPin *pin_;
+  InternalGPIOPin *pin_;
   uint8_t mode_{MODE_RECEIVER};
 
   float mhz_{433.92};

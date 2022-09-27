@@ -5,7 +5,7 @@
 #include <queue>
 #include <mutex>
 
-#ifdef ARDUINO_ARCH_ESP32
+#ifdef USE_ESP32
 
 #include <esp_gap_bt_api.h>
 #include <esp_gattc_api.h>

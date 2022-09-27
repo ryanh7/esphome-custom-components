@@ -1,39 +1,39 @@
 #pragma once
-
-#include <utility>
-#include <SD.h>
-#ifdef ESP32
-#include "SPIFFS.h"
-#endif
-
 #include "esphome/core/component.h"
-#include "esphome/core/esphal.h"
+#include "esphome/core/hal.h"
 #include "esphome/core/automation.h"
-#include "esphome/components/text_sensor/text_sensor.h"
-
-#include "AudioLogger.h"
-
 #include "AudioOutputI2SNoDAC.h"
 #include "AudioGenerator.h"
 #include "AudioFileSource.h"
 #include "AudioFileSourceBuffer.h"
-
-#include "AudioFileSourceHTTPStream.h"
+#include "esphome/components/media_player/media_player.h"
 
 namespace esphome {
 namespace audio_player {
 
-enum status_type { STATUS_IDLE, STATUS_PLAYING };
-
-class AudioLogger : public Print {
- public:
-  size_t write(const uint8_t *buffer, size_t size) override;
-  size_t write(uint8_t data) override;
+enum status_type {
+  STATUS_IDLE = 0,
+  STATUS_PLAYING,
+  STATUS_PAUSE,
+  STATUS_MUTE,
+  STATUS_UNMUTE,
+  STATUS_VOLUME_ZERO = 100,
+  STATUS_VOLUME_MAX = 200
 };
 
-class AudioOutputI2SNoDACWithVolume : public AudioOutputI2SNoDAC {
+class Dumpable {
  public:
-  AudioOutputI2SNoDACWithVolume(int port = 0) : AudioOutputI2SNoDAC(port) {}
+  virtual void dump_config() = 0;
+};
+
+class Volume {
+ public:
+  virtual void set_volume(float volume) = 0;
+};
+
+template<typename T> class VolumeOutput : public T, public Volume {
+ public:
+  using T::T;
   virtual bool ConsumeSample(int16_t sample[2]) override {
     int16_t sample_adjust[2];
     double sample_rescale = (double) sample[0] * (double) volume_;
@@ -44,79 +44,67 @@ class AudioOutputI2SNoDACWithVolume : public AudioOutputI2SNoDAC {
     sample_rescale = (sample_rescale < -32768) ? -32768 : sample_rescale;
     sample_rescale = (sample_rescale > 32767) ? 32767 : sample_rescale;
     sample_adjust[1] = (int16_t) (sample_rescale);
-    return AudioOutputI2SNoDAC::ConsumeSample(sample_adjust);
+    return T::ConsumeSample(sample_adjust);
   }
-  void set_volume(float volume) { volume_ = volume; }
+  virtual void set_volume(float volume) { volume_ = volume; }
 
  protected:
   float volume_{1.0f};
 };
 
-class StatusListener {
+class PlayerOutputI2S : public VolumeOutput<AudioOutputI2S>, public Dumpable {
  public:
-  virtual void on_change(uint8_t status) = 0;
+  void set_pins(InternalGPIOPin *bclk, InternalGPIOPin *wclk, InternalGPIOPin *dout);
+  virtual void dump_config() override;
+
+ protected:
+  InternalGPIOPin *bclk_;
+  InternalGPIOPin *wclk_;
+  InternalGPIOPin *dout_;
 };
 
-class AudioPlayerComponent : public Component {
+class PlayerOutputI2SNoDAC : public VolumeOutput<AudioOutputI2SNoDAC>, public Dumpable {
  public:
-  AudioPlayerComponent() {}
+  virtual void dump_config() override;
+};
+
+
+class AudioMediaPlayer : public Component, public media_player::MediaPlayer {
+ public:
   void setup() override;
   void loop() override;
   void dump_config() override;
-  float get_setup_priority() const override { return setup_priority::DATA; }
-  void register_listener(StatusListener *listener) { this->listeners_.push_back(listener); }
-
-  void set_pin(GPIOPin *pin) { pin_ = pin; }
-  void set_buffer_size(uint32_t size) { buffer_size_ = size; }
-  void set_volume_percent(uint16_t percent) { base_volume_ = (float) percent / 100; }
+  media_player::MediaPlayerTraits get_traits() override;
+  bool is_muted() const override { return this->muted_; }
 
   void play(const std::string &url);
   void stop();
 
+  void set_output(AudioOutput *out) { this->out_ = out; }
+  void set_volume_controller(Volume *volume_contorller) { this->volume_contorller_ = volume_contorller; }
+  void set_ext_info(Dumpable *info) { this->ext_info_ = info; }
+  void set_buffer_size(uint32_t size) { this->buffer_size_ = size; }
+  void set_base_volume(float base_volume) { this->base_volume_ = base_volume; }
+  void set_volume(float volume);
+
+  float get_setup_priority() const override { return setup_priority::LATE; }
+
  protected:
-  GPIOPin *pin_{NULL};
-  uint32_t buffer_size_{1024};
+  void control(const media_player::MediaPlayerCall &call) override;
+  void mute_();
+  void unmute_();
+  bool pause_{false};
+  bool muted_{false};
+
   float base_volume_{1.0f};
-  AudioOutputI2SNoDACWithVolume *out_;
+  uint32_t buffer_size_{1024};
+
   AudioGenerator *generator_{NULL};
   AudioFileSource *file_{NULL};
-  AudioFileSourceBuffer *buffer_;
-  AudioLogger logger_;
-
-  std::vector<StatusListener *> listeners_;
-};
-
-template<typename... Ts> class PlayAudioAction : public Action<Ts...> {
- public:
-  PlayAudioAction(AudioPlayerComponent *parent) : parent_(parent) {}
-  TEMPLATABLE_VALUE(std::string, url)
-
-  void play(Ts... x) { this->parent_->play(url_.value(x...)); }
-
- protected:
-  AudioPlayerComponent *parent_;
-};
-
-template<typename... Ts> class StopAudioAction : public Action<Ts...> {
- public:
-  StopAudioAction(AudioPlayerComponent *parent) : parent_(parent) {}
-
-  void play(Ts... x) { this->parent_->stop(); }
-
- protected:
-  AudioPlayerComponent *parent_;
-};
-
-class AudioPlayerStatusTextSensor : public text_sensor::TextSensor, public StatusListener, public Component {
- public:
-  void setup() override;
-  void dump_config() override;
-  float get_setup_priority() const override { return setup_priority::DATA; }
-
-  virtual void on_change(uint8_t status) override;
-
- protected:
-  bool hide_timestamp_{false};
+  AudioFileSourceBuffer *buffer_{NULL};
+  AudioOutput *out_{NULL};
+  Volume *volume_contorller_{NULL};
+  Dumpable *ext_info_{NULL};
 };
 
 }  // namespace audio_player
