@@ -136,3 +136,21 @@ binary_sensor:
       filters:
         - delayed_off: 3s #设置一个合适的状态持续时间
 ```
+* esp32_bt_tracker, bt_presence, bt_rssi
+> 通过经典蓝牙扫描发现蓝牙设备，蓝牙设备须处于可被发现状态
+```yaml
+#配置示例
+esp32_bt_tracker: #启用经典蓝牙扫描组件，控制台会以debug消息打印扫描到的未设置sensor的设备mac
+  scan_parameters:
+      duration: 5s #每次扫描持续时间，影响不大
+
+binary_sensor: #示例，扫描到设备
+  - platform: bt_presence
+    mac_address: C4:C0:82:0F:E8:54 #安卓手机蓝牙mac地址
+    name: "android"
+
+sensor: #示例，显示设备信号强度
+  - platform: bt_rssi
+    mac_address: C4:C0:82:0F:E8:54 #安卓手机蓝牙mac地址
+    name: "android"
+```
