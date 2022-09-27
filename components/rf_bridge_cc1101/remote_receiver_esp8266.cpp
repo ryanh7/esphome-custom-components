@@ -1,19 +1,20 @@
 #include "remote_receiver.h"
+#include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 #include "esphome/core/helpers.h"
 
-#ifdef ARDUINO_ARCH_ESP8266
+#ifdef USE_ESP8266
 
 namespace esphome {
 namespace rf_bridge_cc1101 {
 
 static const char *const TAG = "rf_bridge_cc1101.receiver.esp8266";
 
-void ICACHE_RAM_ATTR HOT RemoteReceiverStore::gpio_intr(RemoteReceiverStore *arg) {
+void IRAM_ATTR HOT RemoteReceiverStore::gpio_intr(RemoteReceiverStore *arg) {
   const uint32_t now = micros();
   // If the lhs is 1 (rising edge) we should write to an uneven index and vice versa
   const uint32_t next = (arg->buffer_write_at + 1) % arg->buffer_size;
-  const bool level = arg->pin->digital_read();
+  const bool level = arg->pin.digital_read();
   if (level != next % 2)
     return;
 
@@ -56,8 +57,8 @@ void RemoteReceiver::setup() {
 }
 
 void RemoteReceiver::enable() {
-  this->pin_->setup();
-  this->pin_->attach_interrupt(RemoteReceiverStore::gpio_intr, &this->store_, CHANGE);
+  this->pin_->pin_mode(gpio::FLAG_INPUT);
+  this->pin_->attach_interrupt(RemoteReceiverStore::gpio_intr, &this->store_, gpio::INTERRUPT_ANY_EDGE);
 }
 
 void RemoteReceiver::diable() { this->pin_->detach_interrupt(); }

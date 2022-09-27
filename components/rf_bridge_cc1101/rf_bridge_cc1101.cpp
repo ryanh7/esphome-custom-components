@@ -25,12 +25,12 @@ uint8_t PA_TABLE_915[10]{
 
 static const char *const TAG = "rf_bridge_cc1101";
 
-RFBridgeComponent::RFBridgeComponent(GPIOPin *pin) : pin_(pin) {
+RFBridgeComponent::RFBridgeComponent(InternalGPIOPin *pin) : pin_(pin) {
   if (!pin) {
     return;
   }
-  transmitter_ = new RemoteTransmitter(new GPIOPin(pin_->get_pin(), OUTPUT, pin_->is_inverted()));
-  receiver_ = new RemoteReceiver(new GPIOPin(pin_->get_pin(), INPUT, pin_->is_inverted()));
+  transmitter_ = new RemoteTransmitter(pin);
+  receiver_ = new RemoteReceiver(pin);
 }
 
 void RFBridgeComponent::setup() {
@@ -40,7 +40,7 @@ void RFBridgeComponent::setup() {
   }
 
   if (receiver_) {
-#ifdef ARDUINO_ARCH_ESP32
+#ifdef USE_ESP32
     receiver_->set_buffer_size(10240);
 #else
     receiver_->set_buffer_size(1024);
