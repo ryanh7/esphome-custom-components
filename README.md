@@ -13,13 +13,16 @@ external_components:
 ## 组件列表
 * esp8266 通过http流播放wav
 ```yaml
-audio_player:
-  volume: 100% #可选，基准音量
-  buffer_size: 1024 #可选，http流缓冲区大小
-
-text_sensor:
-  - platform: audio_player #示例，绑定一个传感器用于表明播放器状态
-    name: "Media Player Status"
+media_player:
+  - platform: audio_player
+    name: "Media Player"
+    volume: 100% #可选，基准音量
+    buffer_size: 10240 #可选，http流缓冲区大小
+    i2sNoDAC: {} # 二选一，RX直接输出音频
+    i2s: # 二选一，外置DAC输出
+      bclk: GPIO15
+      wclk: GPIO3
+      dout: GPIO2
 ```
 * cc1101 射频收发
 ```yaml
