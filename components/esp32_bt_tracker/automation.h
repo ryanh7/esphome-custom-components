@@ -3,7 +3,7 @@
 #include "esphome/core/automation.h"
 #include "esp32_bt_tracker.h"
 
-#ifdef ARDUINO_ARCH_ESP32
+#ifdef USE_ESP32
 
 namespace esphome {
 namespace esp32_bt_tracker {

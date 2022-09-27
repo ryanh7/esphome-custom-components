@@ -1,7 +1,7 @@
 #include "bt_rssi_sensor.h"
 #include "esphome/core/log.h"
 
-#ifdef ARDUINO_ARCH_ESP32
+#ifdef USE_ESP32
 
 namespace esphome {
 namespace bt_rssi {
