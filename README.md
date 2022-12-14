@@ -208,3 +208,22 @@ light:
 > - fpm383c.clear 删除已注册指纹
 > - fpm383c.cancel 取消指纹匹配或注册
 > - fpm383c.reset 重启指纹模块
+
+* DL/T 645
+> 支持符合DL/T 645-2007规范的电表
+```yaml
+#配置示例
+remote_transmitter:
+  pin: GPIO4
+  carrier_duty_percent: 50%
+
+remote_receiver:
+  pin:  GPIO5
+
+dlt645:
+  address: 123456789012 #可选，12位电表地址，一般印刷于电表上。不配置可自动获取。
+  power:
+    name: "Power" #瞬时总有功功率
+  energy:
+    name: "Energy" #当前组合有功总电能
+```
