@@ -14,6 +14,7 @@ from esphome.const import (
     UNIT_KILOWATT,
     UNIT_KILOWATT_HOURS,
     DEVICE_CLASS_POWER,
+    DEVICE_CLASS_ENERGY,
     STATE_CLASS_MEASUREMENT,
 )
 from esphome.components.remote_base import CONF_RECEIVER_ID, CONF_TRANSMITTER_ID
@@ -56,7 +57,7 @@ CONFIG_SCHEMA = cv.All(
                 DLT645Sensor,
                 unit_of_measurement=UNIT_KILOWATT_HOURS,
                 accuracy_decimals=2,
-                device_class=DEVICE_CLASS_POWER,
+                device_class=DEVICE_CLASS_ENERGY,
                 state_class=STATE_CLASS_MEASUREMENT,
             ).extend(
                 {
