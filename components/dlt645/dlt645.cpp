@@ -198,8 +198,8 @@ void DLT645Component::send(std::vector<uint8_t> &address, uint8_t opcode, std::v
   transmit_data->set_carrier_frequency(38000);
   bool last_bit = false;
   int32_t time = 0;
-  bool parity_bit = false;
   for (auto byte : request) {
+    bool parity_bit = true;
     for (int i = 0; i < 11; i++) {
       bool bit = false;
       switch (i) {
