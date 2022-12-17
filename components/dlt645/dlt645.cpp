@@ -30,11 +30,6 @@ void DLT645Component::loop() {
   }
 
   if (this->address_.empty()) {
-    static uint32_t last_request = 0;
-    if (last_request > 0 && micros() < last_request + 1000000) {
-      return;
-    }
-    last_request = micros();
     std::vector<uint8_t> address = {0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA};
     this->send(address, 0x13);
     return;
