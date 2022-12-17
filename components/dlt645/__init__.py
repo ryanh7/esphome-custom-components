@@ -30,6 +30,55 @@ DLT645Sensor = dlt645_ns.class_(
 )
 
 CONF_ADDRESS = "address"
+CONF_POWER_A = "power_a"
+CONF_POWER_B = "power_b"
+CONF_POWER_C = "power_c"
+CONF_ENERGY_A = "energy_a"
+CONF_ENERGY_B = "energy_b"
+CONF_ENERGY_C = "energy_c"
+
+
+class SensorSetting:
+    def __init__(self, name, id, format) -> None:
+        self.name = name,
+        self.id = id,
+        self.format = format
+
+
+Sensors = {
+    CONF_POWER: SensorSetting("Power", 0x02030000, 1.2),
+    CONF_POWER_A: SensorSetting("Power A", 0x02030100, 1.2),
+    CONF_POWER_B: SensorSetting("Power B", 0x02030200, 1.2),
+    CONF_POWER_C: SensorSetting("Power C", 0x02030300, 1.2),
+    CONF_ENERGY: SensorSetting("Energy", 0x00000000, 3.1),
+    CONF_ENERGY_A: SensorSetting("Energy A", 0x00150000, 3.1),
+    CONF_ENERGY_B: SensorSetting("Energy B", 0x00290000, 3.1),
+    CONF_ENERGY_C: SensorSetting("Energy C", 0x003D0000, 3.1),
+}
+
+CONFIG_POWER_SCHEMA = sensor.sensor_schema(
+    DLT645Sensor,
+    unit_of_measurement=UNIT_KILOWATT,
+    accuracy_decimals=4,
+    device_class=DEVICE_CLASS_POWER,
+    state_class=STATE_CLASS_MEASUREMENT,
+).extend(
+    {
+        cv.Optional(CONF_INTERVAL, default="10s"): cv.positive_time_period_microseconds,
+    }
+)
+
+CONFIG_ENERGY_SCHEMA = sensor.sensor_schema(
+    DLT645Sensor,
+    unit_of_measurement=UNIT_KILOWATT_HOURS,
+    accuracy_decimals=2,
+    device_class=DEVICE_CLASS_ENERGY,
+    state_class=STATE_CLASS_MEASUREMENT,
+).extend(
+    {
+        cv.Optional(CONF_INTERVAL, default="30s"): cv.positive_time_period_microseconds,
+    }
+)
 
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
@@ -42,28 +91,14 @@ CONFIG_SCHEMA = cv.All(
                 remote_receiver.RemoteReceiverComponent
             ),
             cv.Optional(CONF_ADDRESS): cv.string,
-            cv.Optional(CONF_POWER): sensor.sensor_schema(
-                DLT645Sensor,
-                unit_of_measurement=UNIT_KILOWATT,
-                accuracy_decimals=4,
-                device_class=DEVICE_CLASS_POWER,
-                state_class=STATE_CLASS_MEASUREMENT,
-            ).extend(
-                {
-                    cv.Optional(CONF_INTERVAL, default="5s"): cv.positive_time_period_microseconds,
-                }
-            ),
-            cv.Optional(CONF_ENERGY): sensor.sensor_schema(
-                DLT645Sensor,
-                unit_of_measurement=UNIT_KILOWATT_HOURS,
-                accuracy_decimals=2,
-                device_class=DEVICE_CLASS_ENERGY,
-                state_class=STATE_CLASS_MEASUREMENT,
-            ).extend(
-                {
-                    cv.Optional(CONF_INTERVAL, default="10s"): cv.positive_time_period_microseconds,
-                }
-            ),
+            cv.Optional(CONF_POWER): CONFIG_POWER_SCHEMA,
+            cv.Optional(CONF_POWER_A): CONFIG_POWER_SCHEMA,
+            cv.Optional(CONF_POWER_B): CONFIG_POWER_SCHEMA,
+            cv.Optional(CONF_POWER_C): CONFIG_POWER_SCHEMA,
+            cv.Optional(CONF_ENERGY): CONFIG_ENERGY_SCHEMA,
+            cv.Optional(CONF_ENERGY_A): CONFIG_ENERGY_SCHEMA,
+            cv.Optional(CONF_ENERGY_B): CONFIG_ENERGY_SCHEMA,
+            cv.Optional(CONF_ENERGY_C): CONFIG_ENERGY_SCHEMA,
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -83,15 +118,11 @@ async def to_code(config):
     if CONF_ADDRESS in config:
         cg.add(var.set_address(config[CONF_ADDRESS]))
 
-    if CONF_POWER in config:
-        sensor_config = config[CONF_POWER]
-        var_sensor = cg.new_Pvariable(sensor_config[CONF_ID])
-        cg.add(var_sensor.set_interval(sensor_config[CONF_INTERVAL]))
-        await sensor.register_sensor(var_sensor, sensor_config)
-        cg.add(var.set_power_sensor(var_sensor))
-    if CONF_ENERGY in config:
-        sensor_config = config[CONF_ENERGY]
-        var_sensor = cg.new_Pvariable(sensor_config[CONF_ID])
-        cg.add(var_sensor.set_interval(sensor_config[CONF_INTERVAL]))
-        await sensor.register_sensor(var_sensor, sensor_config)
-        cg.add(var.set_energy_sensor(var_sensor))
+    for config_type, setting in Sensors.items():
+        if config_type in config:
+            sensor_config = config[config_type]
+            var_sensor = cg.new_Pvariable(
+                sensor_config[CONF_ID], setting.name, setting.id, setting.format)
+            cg.add(var_sensor.set_interval(sensor_config[CONF_INTERVAL]))
+            await sensor.register_sensor(var_sensor, sensor_config)
+            cg.add(var.register_sensor(var_sensor))
