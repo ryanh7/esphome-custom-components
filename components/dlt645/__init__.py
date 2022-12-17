@@ -30,6 +30,9 @@ DLT645Sensor = dlt645_ns.class_(
 )
 
 CONF_ADDRESS = "address"
+CONF_ENERGY_A = "energy_a"
+CONF_ENERGY_B = "energy_b"
+CONF_ENERGY_C = "energy_c"
 
 CONFIG_SCHEMA = cv.All(
     cv.Schema(
@@ -54,6 +57,39 @@ CONFIG_SCHEMA = cv.All(
                 }
             ),
             cv.Optional(CONF_ENERGY): sensor.sensor_schema(
+                DLT645Sensor,
+                unit_of_measurement=UNIT_KILOWATT_HOURS,
+                accuracy_decimals=2,
+                device_class=DEVICE_CLASS_ENERGY,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERVAL, default="10s"): cv.positive_time_period_microseconds,
+                }
+            ),
+            cv.Optional(CONF_ENERGY_A): sensor.sensor_schema(
+                DLT645Sensor,
+                unit_of_measurement=UNIT_KILOWATT_HOURS,
+                accuracy_decimals=2,
+                device_class=DEVICE_CLASS_ENERGY,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERVAL, default="10s"): cv.positive_time_period_microseconds,
+                }
+            ),
+            cv.Optional(CONF_ENERGY_B): sensor.sensor_schema(
+                DLT645Sensor,
+                unit_of_measurement=UNIT_KILOWATT_HOURS,
+                accuracy_decimals=2,
+                device_class=DEVICE_CLASS_ENERGY,
+                state_class=STATE_CLASS_MEASUREMENT,
+            ).extend(
+                {
+                    cv.Optional(CONF_INTERVAL, default="10s"): cv.positive_time_period_microseconds,
+                }
+            ),
+            cv.Optional(CONF_ENERGY_C): sensor.sensor_schema(
                 DLT645Sensor,
                 unit_of_measurement=UNIT_KILOWATT_HOURS,
                 accuracy_decimals=2,
@@ -95,3 +131,21 @@ async def to_code(config):
         cg.add(var_sensor.set_interval(sensor_config[CONF_INTERVAL]))
         await sensor.register_sensor(var_sensor, sensor_config)
         cg.add(var.set_energy_sensor(var_sensor))
+    if CONF_ENERGY_A in config:
+        sensor_config = config[CONF_ENERGY_A]
+        var_sensor = cg.new_Pvariable(sensor_config[CONF_ID])
+        cg.add(var_sensor.set_interval(sensor_config[CONF_INTERVAL]))
+        await sensor.register_sensor(var_sensor, sensor_config)
+        cg.add(var.set_energy_a_sensor(var_sensor))
+    if CONF_ENERGY_B in config:
+        sensor_config = config[CONF_ENERGY_B]
+        var_sensor = cg.new_Pvariable(sensor_config[CONF_ID])
+        cg.add(var_sensor.set_interval(sensor_config[CONF_INTERVAL]))
+        await sensor.register_sensor(var_sensor, sensor_config)
+        cg.add(var.set_energy_b_sensor(var_sensor))
+    if CONF_ENERGY_C in config:
+        sensor_config = config[CONF_ENERGY_C]
+        var_sensor = cg.new_Pvariable(sensor_config[CONF_ID])
+        cg.add(var_sensor.set_interval(sensor_config[CONF_INTERVAL]))
+        await sensor.register_sensor(var_sensor, sensor_config)
+        cg.add(var.set_energy_c_sensor(var_sensor))

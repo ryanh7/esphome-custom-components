@@ -28,6 +28,16 @@ void DLT645Component::setup() {}
 
 void DLT645Component::loop() {
   if (!rx_buffer_.empty()) {
+    {
+      char buffer[1024];
+      int at = 0;
+      for(auto byte:rx_buffer_)
+      {
+        sprintf(buffer+at, "%02X ", byte);
+        at+= 3;
+      }
+      ESP_LOGI(TAG, "%s", buffer);
+    }
     for (int i = 0; i < this->rx_buffer_.size(); i++) {
       if (this->rx_buffer_[i] == 0x68) {
         if (i + 11 >= this->rx_buffer_.size()) {
@@ -60,7 +70,7 @@ void DLT645Component::loop() {
     }
     last_request = micros();
     std::vector<uint8_t> address = {0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA};
-    this->send(address, 0x13, nullptr);
+    this->send(address, 0x13, nullptr, 200);
     return;
   }
 
@@ -74,6 +84,21 @@ void DLT645Component::loop() {
     std::vector<uint8_t> data_type = {0x00, 0x00, 0x00, 0x00};
     this->send(this->address_, 0x11, &data_type, 200);
     this->energy_sensor_->last_update = micros();
+  }
+  if (this->energy_sensor_a_ != nullptr && this->energy_sensor_a_->is_timeout()) {
+    std::vector<uint8_t> data_type = {0x00, 0x00, 0x15, 0x00};
+    this->send(this->address_, 0x11, &data_type, 200);
+    this->energy_sensor_a_->last_update = micros();
+  }
+  if (this->energy_sensor_b_ != nullptr && this->energy_sensor_b_->is_timeout()) {
+    std::vector<uint8_t> data_type = {0x00, 0x00, 0x29, 0x00};
+    this->send(this->address_, 0x11, &data_type, 200);
+    this->energy_sensor_b_->last_update = micros();
+  }
+  if (this->energy_sensor_c_ != nullptr && this->energy_sensor_c_->is_timeout()) {
+    std::vector<uint8_t> data_type = {0x00, 0x00, 0x3D, 0x00};
+    this->send(this->address_, 0x11, &data_type, 200);
+    this->energy_sensor_c_->last_update = micros();
   }
 }
 
@@ -122,6 +147,57 @@ void DLT645Component::handle_response(std::vector<uint8_t> &data, int index) {
                         decode_byte(data[index + 7]) + decode_byte(data[index + 6]) / 100.0f;
           this->energy_sensor_->publish_state(value);
           this->energy_sensor_->last_update = micros();
+        }
+        break;
+      }
+      case 0x00150000: {
+        if (data[index + 1] == 1) {
+          ESP_LOGE(TAG, "Energy A error: %02X", data[index + 2]);
+          break;
+        }
+        if (data[index + 1] != 8) {
+          ESP_LOGE(TAG, "Engery A length invaild: %d", data[index + 1]);
+          break;
+        }
+        if (this->energy_sensor_a_ != nullptr) {
+          float value = decode_byte(data[index + 9] & 0x7F) * 10000.0f + decode_byte(data[index + 8]) * 100.0f +
+                        decode_byte(data[index + 7]) + decode_byte(data[index + 6]) / 100.0f;
+          this->energy_sensor_a_->publish_state(value);
+          this->energy_sensor_a_->last_update = micros();
+        }
+        break;
+      }
+      case 0x00290000: {
+        if (data[index + 1] == 1) {
+          ESP_LOGE(TAG, "Energy B error: %02X", data[index + 2]);
+          break;
+        }
+        if (data[index + 1] != 8) {
+          ESP_LOGE(TAG, "Engery B length invaild: %d", data[index + 1]);
+          break;
+        }
+        if (this->energy_sensor_b_ != nullptr) {
+          float value = decode_byte(data[index + 9] & 0x7F) * 10000.0f + decode_byte(data[index + 8]) * 100.0f +
+                        decode_byte(data[index + 7]) + decode_byte(data[index + 6]) / 100.0f;
+          this->energy_sensor_b_->publish_state(value);
+          this->energy_sensor_b_->last_update = micros();
+        }
+        break;
+      }
+      case 0x003D0000: {
+        if (data[index + 1] == 1) {
+          ESP_LOGE(TAG, "Energy C error: %02X", data[index + 2]);
+          break;
+        }
+        if (data[index + 1] != 8) {
+          ESP_LOGE(TAG, "Engery C length invaild: %d", data[index + 1]);
+          break;
+        }
+        if (this->energy_sensor_c_ != nullptr) {
+          float value = decode_byte(data[index + 9] & 0x7F) * 10000.0f + decode_byte(data[index + 8]) * 100.0f +
+                        decode_byte(data[index + 7]) + decode_byte(data[index + 6]) / 100.0f;
+          this->energy_sensor_c_->publish_state(value);
+          this->energy_sensor_c_->last_update = micros();
         }
         break;
       }

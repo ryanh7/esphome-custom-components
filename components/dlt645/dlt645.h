@@ -28,6 +28,9 @@ class DLT645Component : public Component, public remote_base::RemoteReceiverList
   }
   void set_power_sensor(DLT645Sensor *sensor) { power_sensor_ = sensor; }
   void set_energy_sensor(DLT645Sensor *sensor) { energy_sensor_ = sensor; }
+  void set_energy_a_sensor(DLT645Sensor *sensor) { energy_sensor_a_ = sensor; }
+  void set_energy_b_sensor(DLT645Sensor *sensor) { energy_sensor_b_ = sensor; }
+  void set_energy_c_sensor(DLT645Sensor *sensor) { energy_sensor_c_ = sensor; }
 
  protected:
   bool on_receive(remote_base::RemoteReceiveData data) override;
@@ -42,6 +45,9 @@ class DLT645Component : public Component, public remote_base::RemoteReceiverList
 
   DLT645Sensor *power_sensor_{nullptr};
   DLT645Sensor *energy_sensor_{nullptr};
+  DLT645Sensor *energy_sensor_a_{nullptr};
+  DLT645Sensor *energy_sensor_b_{nullptr};
+  DLT645Sensor *energy_sensor_c_{nullptr};
 };
 
 }  // namespace dlt645
