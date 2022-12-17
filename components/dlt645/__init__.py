@@ -64,7 +64,7 @@ CONFIG_POWER_SCHEMA = sensor.sensor_schema(
     state_class=STATE_CLASS_MEASUREMENT,
 ).extend(
     {
-        cv.Optional(CONF_INTERVAL, default="5s"): cv.positive_time_period_microseconds,
+        cv.Optional(CONF_INTERVAL, default="10s"): cv.positive_time_period_microseconds,
     }
 )
 
@@ -76,7 +76,7 @@ CONFIG_ENERGY_SCHEMA = sensor.sensor_schema(
     state_class=STATE_CLASS_MEASUREMENT,
 ).extend(
     {
-        cv.Optional(CONF_INTERVAL, default="10s"): cv.positive_time_period_microseconds,
+        cv.Optional(CONF_INTERVAL, default="30s"): cv.positive_time_period_microseconds,
     }
 )
 
