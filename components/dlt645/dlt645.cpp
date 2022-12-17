@@ -16,51 +16,17 @@ void DLT645Component::dump_config() {
   } else {
     ESP_LOGCONFIG(TAG, "  Address: Unkown");
   }
-  if (this->power_sensor_ != nullptr) {
-    LOG_SENSOR("  ", "Power", this->power_sensor_);
-  }
-  if (this->energy_sensor_ != nullptr) {
-    LOG_SENSOR("  ", "Energy", this->energy_sensor_);
+  for (auto sensor : this->sensors_) {
+    ESP_LOGCONFIG(TAG, "  %s", sensor->get_type().c_str());
+    LOG_SENSOR("  ", "  Name:", sensor);
   }
 }
 
 void DLT645Component::setup() {}
 
 void DLT645Component::loop() {
-  if (!rx_buffer_.empty()) {
-    {
-      char buffer[1024];
-      int at = 0;
-      for(auto byte:rx_buffer_)
-      {
-        sprintf(buffer+at, "%02X ", byte);
-        at+= 3;
-      }
-      ESP_LOGI(TAG, "%s", buffer);
-    }
-    for (int i = 0; i < this->rx_buffer_.size(); i++) {
-      if (this->rx_buffer_[i] == 0x68) {
-        if (i + 11 >= this->rx_buffer_.size()) {
-          continue;
-        }
-        if (this->rx_buffer_[i + 7] != 0x68) {
-          continue;
-        }
-        int end_at = i + 11 + this->rx_buffer_[i + 9];
-        if (end_at >= this->rx_buffer_.size() || this->rx_buffer_[end_at] != 0x16) {
-          continue;
-        }
-        if (this->rx_buffer_[end_at - 1] != this->checksum_(this->rx_buffer_, i, end_at - i - 1)) {
-          continue;
-        }
-        for (int j = i + 10; j < end_at - 1; j++) {
-          this->rx_buffer_[j] -= 0x33;
-        }
-        this->handle_response(this->rx_buffer_, i + 8);
-        i = end_at;
-      }
-    }
-    this->rx_buffer_.clear();
+  if (micros() < this->next_time_) {
+    return;
   }
 
   if (this->address_.empty()) {
@@ -70,35 +36,21 @@ void DLT645Component::loop() {
     }
     last_request = micros();
     std::vector<uint8_t> address = {0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA};
-    this->send(address, 0x13, nullptr, 200);
+    this->send(address, 0x13);
     return;
   }
 
-  if (this->power_sensor_ != nullptr && this->power_sensor_->is_timeout()) {
-    std::vector<uint8_t> data_type = {0x00, 0x00, 0x03, 0x02};
-    this->send(this->address_, 0x11, &data_type, 200);
-    this->power_sensor_->last_update = micros();
+  static int next = -1;
+  size_t size = this->sensors_.size();
+  if (size == 0) {
+    return;
   }
-
-  if (this->energy_sensor_ != nullptr && this->energy_sensor_->is_timeout()) {
-    std::vector<uint8_t> data_type = {0x00, 0x00, 0x00, 0x00};
-    this->send(this->address_, 0x11, &data_type, 200);
-    this->energy_sensor_->last_update = micros();
-  }
-  if (this->energy_sensor_a_ != nullptr && this->energy_sensor_a_->is_timeout()) {
-    std::vector<uint8_t> data_type = {0x00, 0x00, 0x15, 0x00};
-    this->send(this->address_, 0x11, &data_type, 200);
-    this->energy_sensor_a_->last_update = micros();
-  }
-  if (this->energy_sensor_b_ != nullptr && this->energy_sensor_b_->is_timeout()) {
-    std::vector<uint8_t> data_type = {0x00, 0x00, 0x29, 0x00};
-    this->send(this->address_, 0x11, &data_type, 200);
-    this->energy_sensor_b_->last_update = micros();
-  }
-  if (this->energy_sensor_c_ != nullptr && this->energy_sensor_c_->is_timeout()) {
-    std::vector<uint8_t> data_type = {0x00, 0x00, 0x3D, 0x00};
-    this->send(this->address_, 0x11, &data_type, 200);
-    this->energy_sensor_c_->last_update = micros();
+  for (int i = 0; i < size; i++) {
+    next = (next + 1) % size;
+    if (this->sensors_[next]->is_timeout()) {
+      this->send(this->address_, 0x11, this->sensors_[next]->get_id());
+      break;
+    }
   }
 }
 
@@ -115,95 +67,19 @@ void DLT645Component::handle_response(std::vector<uint8_t> &data, int index) {
   }
   if (opcode == 0x91) {
     uint32_t data_type = encode_uint32(data[index + 5], data[index + 4], data[index + 3], data[index + 2]);
-    switch (data_type) {
-      case 0x02030000: {
-        if (data[index + 1] == 1) {
-          ESP_LOGE(TAG, "Power error: %02X", data[index + 2]);
-          break;
+    for (auto sensor : this->sensors_) {
+      if (data_type == sensor->get_id()) {
+        uint32_t value = 0;
+        uint8_t fraction = ((uint8_t) (sensor->get_format() * 10.0f)) % 10;
+        uint8_t integer = ((uint8_t) sensor->get_format()) % 10;
+        data[index + 5 + fraction + integer] &= 0x7F;
+        for (uint8_t i = fraction + integer; i > 0; i--) {
+          value = value * 100 + decode_byte(data[index + 5 + i]);
         }
-        if (data[index + 1] != 7) {
-          ESP_LOGE(TAG, "Power length invaild: %d", data[index + 1]);
-          break;
-        }
-        if (this->power_sensor_ != nullptr) {
-          float value = decode_byte(data[index + 8] & 0x7F) + decode_byte(data[index + 7]) / 100.0f +
-                        decode_byte(data[index + 6]) / 10000.0f;
-          this->power_sensor_->publish_state(value);
-          this->power_sensor_->last_update = micros();
-        }
+        sensor->publish_state(value * pow(0.01, fraction));
+        sensor->last_update = micros();
         break;
       }
-      case 0x00000000: {
-        if (data[index + 1] == 1) {
-          ESP_LOGE(TAG, "Energy error: %02X", data[index + 2]);
-          break;
-        }
-        if (data[index + 1] != 8) {
-          ESP_LOGE(TAG, "Engery length invaild: %d", data[index + 1]);
-          break;
-        }
-        if (this->energy_sensor_ != nullptr) {
-          float value = decode_byte(data[index + 9] & 0x7F) * 10000.0f + decode_byte(data[index + 8]) * 100.0f +
-                        decode_byte(data[index + 7]) + decode_byte(data[index + 6]) / 100.0f;
-          this->energy_sensor_->publish_state(value);
-          this->energy_sensor_->last_update = micros();
-        }
-        break;
-      }
-      case 0x00150000: {
-        if (data[index + 1] == 1) {
-          ESP_LOGE(TAG, "Energy A error: %02X", data[index + 2]);
-          break;
-        }
-        if (data[index + 1] != 8) {
-          ESP_LOGE(TAG, "Engery A length invaild: %d", data[index + 1]);
-          break;
-        }
-        if (this->energy_sensor_a_ != nullptr) {
-          float value = decode_byte(data[index + 9] & 0x7F) * 10000.0f + decode_byte(data[index + 8]) * 100.0f +
-                        decode_byte(data[index + 7]) + decode_byte(data[index + 6]) / 100.0f;
-          this->energy_sensor_a_->publish_state(value);
-          this->energy_sensor_a_->last_update = micros();
-        }
-        break;
-      }
-      case 0x00290000: {
-        if (data[index + 1] == 1) {
-          ESP_LOGE(TAG, "Energy B error: %02X", data[index + 2]);
-          break;
-        }
-        if (data[index + 1] != 8) {
-          ESP_LOGE(TAG, "Engery B length invaild: %d", data[index + 1]);
-          break;
-        }
-        if (this->energy_sensor_b_ != nullptr) {
-          float value = decode_byte(data[index + 9] & 0x7F) * 10000.0f + decode_byte(data[index + 8]) * 100.0f +
-                        decode_byte(data[index + 7]) + decode_byte(data[index + 6]) / 100.0f;
-          this->energy_sensor_b_->publish_state(value);
-          this->energy_sensor_b_->last_update = micros();
-        }
-        break;
-      }
-      case 0x003D0000: {
-        if (data[index + 1] == 1) {
-          ESP_LOGE(TAG, "Energy C error: %02X", data[index + 2]);
-          break;
-        }
-        if (data[index + 1] != 8) {
-          ESP_LOGE(TAG, "Engery C length invaild: %d", data[index + 1]);
-          break;
-        }
-        if (this->energy_sensor_c_ != nullptr) {
-          float value = decode_byte(data[index + 9] & 0x7F) * 10000.0f + decode_byte(data[index + 8]) * 100.0f +
-                        decode_byte(data[index + 7]) + decode_byte(data[index + 6]) / 100.0f;
-          this->energy_sensor_c_->publish_state(value);
-          this->energy_sensor_c_->last_update = micros();
-        }
-        break;
-      }
-      default:
-        ESP_LOGW(TAG, "Unkown type: %08X", data_type);
-        break;
     }
   }
 }
@@ -248,28 +124,51 @@ bool DLT645Component::on_receive(remote_base::RemoteReceiveData data) {
       }
     }
   }
+
+  if (!rx_buffer_.empty()) {
+    for (int i = 0; i < this->rx_buffer_.size(); i++) {
+      if (this->rx_buffer_[i] == 0x68) {
+        if (i + 11 >= this->rx_buffer_.size()) {
+          continue;
+        }
+        if (this->rx_buffer_[i + 7] != 0x68) {
+          continue;
+        }
+        int end_at = i + 11 + this->rx_buffer_[i + 9];
+        if (end_at >= this->rx_buffer_.size() || this->rx_buffer_[end_at] != 0x16) {
+          continue;
+        }
+        if (this->rx_buffer_[end_at - 1] != this->checksum_(this->rx_buffer_, i, end_at - i - 1)) {
+          continue;
+        }
+        for (int j = i + 10; j < end_at - 1; j++) {
+          this->rx_buffer_[j] -= 0x33;
+        }
+        this->handle_response(this->rx_buffer_, i + 8);
+        i = end_at;
+        this->next_time_ = micros();
+      }
+    }
+    this->rx_buffer_.clear();
+  }
   return false;
 }
 
-void DLT645Component::send(std::vector<uint8_t> &address, uint8_t opcode, std::vector<uint8_t> *data,
-                           uint16_t wait_ms) {
+void DLT645Component::send(std::vector<uint8_t> &address, uint8_t opcode, uint32_t data_id) {
   std::vector<uint8_t> request = {0xFE, 0xFE, 0xFE, 0xFE, 0x68};
   request.insert(request.end(), address.begin(), address.end());
   request.push_back(0x68);
   request.push_back(opcode);
-  request.push_back(data == nullptr ? 0 : data->size());
-  if (data != nullptr) {
-    for (int i = 0; i < data->size(); i++) {
-      request.push_back((*data)[i] + 0x33);
+  if (data_id != 0xFFFFFFFF) {
+    request.push_back(4);
+    for (int i = 0; i < 4; i++) {
+      request.push_back(((data_id >> (i * 8)) & 0xFF) + 0x33);
     }
+  } else {
+    request.push_back(0);
   }
   request.push_back(this->checksum_(request, 4, request.size() - 4));
   request.push_back(0x16);
-
-  uint32_t now = micros();
-  if (now < this->next_time_) {
-    delay((this->next_time_ - now) / 1000);
-  }
 
   auto transmit = this->transmitter_->transmit();
   auto *transmit_data = transmit.get_data();
@@ -311,7 +210,7 @@ void DLT645Component::send(std::vector<uint8_t> &address, uint8_t opcode, std::v
   transmit_data->space(time);
 
   transmit.perform();
-  this->next_time_ = micros() + wait_ms * 1000;
+  this->next_time_ = micros() + 500000;
 }
 
 uint8_t DLT645Component::checksum_(std::vector<uint8_t> &data, int start, int length) {
