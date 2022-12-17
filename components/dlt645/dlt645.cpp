@@ -28,26 +28,25 @@ void DLT645Component::setup() {}
 
 void DLT645Component::loop() {
   if (!rx_buffer_.empty()) {
-    auto data = this->rx_buffer_;
-    for (int i = 0; i < data.size(); i++) {
-      if (data[i] == 0x68) {
-        if (i + 11 >= data.size()) {
+    for (int i = 0; i < this->rx_buffer_.size(); i++) {
+      if (this->rx_buffer_[i] == 0x68) {
+        if (i + 11 >= this->rx_buffer_.size()) {
           continue;
         }
-        if (data[i + 7] != 0x68) {
+        if (this->rx_buffer_[i + 7] != 0x68) {
           continue;
         }
-        int end_at = i + 11 + data[i + 9];
-        if (end_at >= data.size() || data[end_at] != 0x16) {
+        int end_at = i + 11 + this->rx_buffer_[i + 9];
+        if (end_at >= this->rx_buffer_.size() || this->rx_buffer_[end_at] != 0x16) {
           continue;
         }
-        if (data[end_at - 1] != this->checksum_(data, i, end_at - i - 1)) {
+        if (this->rx_buffer_[end_at - 1] != this->checksum_(this->rx_buffer_, i, end_at - i - 1)) {
           continue;
         }
         for (int j = i + 10; j < end_at - 1; j++) {
-          data[j] -= 0x33;
+          this->rx_buffer_[j] -= 0x33;
         }
-        this->handle_response(data, i + 8);
+        this->handle_response(this->rx_buffer_, i + 8);
         i = end_at;
       }
     }
@@ -67,16 +66,14 @@ void DLT645Component::loop() {
 
   if (this->power_sensor_ != nullptr && this->power_sensor_->is_timeout()) {
     std::vector<uint8_t> data_type = {0x00, 0x00, 0x03, 0x02};
-    this->send(this->address_, 0x11, &data_type);
-    delay(200);
-    this->power_sensor_->last_update = micros();  // debug
+    this->send(this->address_, 0x11, &data_type, 200);
+    this->power_sensor_->last_update = micros();
   }
 
   if (this->energy_sensor_ != nullptr && this->energy_sensor_->is_timeout()) {
     std::vector<uint8_t> data_type = {0x00, 0x00, 0x00, 0x00};
-    this->send(this->address_, 0x11, &data_type);
-    delay(200);
-    this->energy_sensor_->last_update = micros();  // debug
+    this->send(this->address_, 0x11, &data_type, 200);
+    this->energy_sensor_->last_update = micros();
   }
 }
 
@@ -178,7 +175,8 @@ bool DLT645Component::on_receive(remote_base::RemoteReceiveData data) {
   return false;
 }
 
-void DLT645Component::send(std::vector<uint8_t> &address, uint8_t opcode, std::vector<uint8_t> *data) {
+void DLT645Component::send(std::vector<uint8_t> &address, uint8_t opcode, std::vector<uint8_t> *data,
+                           uint16_t wait_ms) {
   std::vector<uint8_t> request = {0xFE, 0xFE, 0xFE, 0xFE, 0x68};
   request.insert(request.end(), address.begin(), address.end());
   request.push_back(0x68);
@@ -192,14 +190,19 @@ void DLT645Component::send(std::vector<uint8_t> &address, uint8_t opcode, std::v
   request.push_back(this->checksum_(request, 4, request.size() - 4));
   request.push_back(0x16);
 
+  uint32_t now = micros();
+  if (now < this->next_time_) {
+    delay((this->next_time_ - now) / 1000);
+  }
+
   auto transmit = this->transmitter_->transmit();
   auto *transmit_data = transmit.get_data();
 
   transmit_data->set_carrier_frequency(38000);
   bool last_bit = false;
   int32_t time = 0;
-  bool parity_bit = false;
   for (auto byte : request) {
+    bool parity_bit = true;
     for (int i = 0; i < 11; i++) {
       bool bit = false;
       switch (i) {
@@ -232,6 +235,7 @@ void DLT645Component::send(std::vector<uint8_t> &address, uint8_t opcode, std::v
   transmit_data->space(time);
 
   transmit.perform();
+  this->next_time_ = micros() + wait_ms * 1000;
 }
 
 uint8_t DLT645Component::checksum_(std::vector<uint8_t> &data, int start, int length) {

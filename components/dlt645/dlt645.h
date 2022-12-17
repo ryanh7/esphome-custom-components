@@ -31,12 +31,13 @@ class DLT645Component : public Component, public remote_base::RemoteReceiverList
 
  protected:
   bool on_receive(remote_base::RemoteReceiveData data) override;
-  void send(std::vector<uint8_t> &address, uint8_t opcode, std::vector<uint8_t> *data);
+  void send(std::vector<uint8_t> &address, uint8_t opcode, std::vector<uint8_t> *data, uint16_t wait_ms = 0);
   uint8_t checksum_(std::vector<uint8_t> &data, int start, int length);
   void handle_response(std::vector<uint8_t> &data, int index);
 
   std::vector<uint8_t> address_;
   std::vector<uint8_t> rx_buffer_;
+  uint32_t next_time_{0};
   remote_transmitter::RemoteTransmitterComponent *transmitter_;
 
   DLT645Sensor *power_sensor_{nullptr};
