@@ -7,6 +7,7 @@ namespace dlt645 {
 static const char *const TAG = "DL/T 645";
 
 #define BIT_TIME 833
+#define SEND_INTERVAL 500000
 
 void DLT645Component::dump_config() {
   ESP_LOGCONFIG(TAG, "DL/T 645:");
@@ -25,7 +26,7 @@ void DLT645Component::dump_config() {
 void DLT645Component::setup() {}
 
 void DLT645Component::loop() {
-  if (micros() < this->next_time_) {
+  if (micros() < this->next_time_ && this->next_time_ - micros() < SEND_INTERVAL) {
     return;
   }
 
@@ -71,8 +72,7 @@ void DLT645Component::handle_response(std::vector<uint8_t> &data, int index) {
         for (uint8_t i = fraction + integer; i > 0; i--) {
           value = value * 100 + decode_byte(data[index + 5 + i]);
         }
-        sensor->publish_state(value * pow(0.01, fraction));
-        sensor->last_update = micros();
+        sensor->update(value * pow(0.01, fraction));
         break;
       }
     }
@@ -205,7 +205,7 @@ void DLT645Component::send(std::vector<uint8_t> &address, uint8_t opcode, uint32
   transmit_data->space(time);
 
   transmit.perform();
-  this->next_time_ = micros() + 500000;
+  this->next_time_ = micros() + SEND_INTERVAL;
 }
 
 uint8_t DLT645Component::checksum_(std::vector<uint8_t> &data, int start, int length) {
@@ -214,6 +214,13 @@ uint8_t DLT645Component::checksum_(std::vector<uint8_t> &data, int start, int le
     sum += data[i];
   }
   return sum;
+}
+
+bool DLT645Sensor::is_timeout() { return (micros() < last_update) || ((micros() - last_update) > update_interval); }
+
+void DLT645Sensor::update(float state) {
+  this->publish_state(state);
+  this->last_update = micros();
 }
 
 }  // namespace dlt645

@@ -13,17 +13,19 @@ class DLT645Sensor : public sensor::Sensor {
   explicit DLT645Sensor(const std::string &type, uint32_t id, float format)
       : sensor::Sensor(), type_(type), data_id_(id), format_(format) {}
   void set_interval(uint32_t interval) { this->update_interval = interval; }
-  bool is_timeout() { return last_update == 0 || micros() > last_update + update_interval; }
   float get_format() { return format_; }
   uint32_t get_id() { return data_id_; }
   const std::string &get_type() const { return this->type_; }
-  uint32_t update_interval{10000000};
-  uint32_t last_update{0};
+
+  bool is_timeout();
+  void update(float state);
 
  protected:
   std::string type_;
   uint32_t data_id_;
   float format_;
+  uint32_t update_interval{10000000};
+  uint32_t last_update{0xFFFFFFFF};
 };
 
 class DLT645Component : public Component, public remote_base::RemoteReceiverListener {
