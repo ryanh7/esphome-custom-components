@@ -8,7 +8,7 @@ from esphome.components import (
 )
 from esphome.const import (
     CONF_ID,
-    CONF_INTERVAL,
+    CONF_UPDATE_INTERVAL,
     CONF_POWER,
     CONF_ENERGY,
     UNIT_KILOWATT,
@@ -64,7 +64,7 @@ CONFIG_POWER_SCHEMA = sensor.sensor_schema(
     state_class=STATE_CLASS_MEASUREMENT,
 ).extend(
     {
-        cv.Optional(CONF_INTERVAL, default="10s"): cv.positive_time_period_microseconds,
+        cv.Optional(CONF_UPDATE_INTERVAL, default="10s"): cv.positive_time_period_microseconds,
     }
 )
 
@@ -76,7 +76,7 @@ CONFIG_ENERGY_SCHEMA = sensor.sensor_schema(
     state_class=STATE_CLASS_MEASUREMENT,
 ).extend(
     {
-        cv.Optional(CONF_INTERVAL, default="30s"): cv.positive_time_period_microseconds,
+        cv.Optional(CONF_UPDATE_INTERVAL, default="30s"): cv.positive_time_period_microseconds,
     }
 )
 
@@ -123,6 +123,6 @@ async def to_code(config):
             sensor_config = config[config_type]
             var_sensor = cg.new_Pvariable(
                 sensor_config[CONF_ID], setting.name, setting.id, setting.format)
-            cg.add(var_sensor.set_interval(sensor_config[CONF_INTERVAL]))
+            cg.add(var_sensor.set_interval(sensor_config[CONF_UPDATE_INTERVAL]))
             await sensor.register_sensor(var_sensor, sensor_config)
             cg.add(var.register_sensor(var_sensor))

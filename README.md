@@ -224,26 +224,26 @@ dlt645:
   address: 123456789012 #可选，12位电表地址，一般印刷于电表上。不配置可自动获取。
   power:
     name: "Power" #瞬时总有功功率
-    interval: 10s #更新间隔
+    update_interval: 10s #更新间隔
   power_a:
     name: "Power A" #瞬时A相有功功率
-    interval: 10s #更新间隔
+    update_interval: 10s #更新间隔
   power_b:
     name: "Power B" #瞬时B相有功功率
-    interval: 10s #更新间隔
+    update_interval: 10s #更新间隔
   power_c:
     name: "Power C" #瞬时C相有功功率
-    interval: 10s #更新间隔
+    update_interval: 10s #更新间隔
   energy:
     name: "Energy" #当前组合有功总电能
-    interval: 30s #更新间隔
+    update_interval: 30s #更新间隔
   energy_a:
     name: "Energy A" #当前A相正向有功电能
-    interval: 30s #更新间隔
+    update_interval: 30s #更新间隔
   energy_b:
     name: "Energy B" #当前B相正向有功电能
-    interval: 30s #更新间隔
+    update_interval: 30s #更新间隔
   energy_c:
     name: "Energy C" #当前C相正向有功电能
-    interval: 30s #更新间隔
+    update_interval: 30s #更新间隔
 ```
