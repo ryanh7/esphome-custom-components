@@ -247,3 +247,16 @@ dlt645:
     name: "Energy C" #当前C相正向有功电能
     update_interval: 30s #更新间隔
 ```
+* Telnet
+> tcp转发串口
+```yaml
+#配置示例
+uart:
+  rx_pin: RX
+  tx_pin: TX
+  baud_rate: 115200
+  rx_buffer_size: 1kB
+
+telnet:
+  port: 23
+```
