@@ -16,6 +16,7 @@ from esphome.const import (
     DEVICE_CLASS_POWER,
     DEVICE_CLASS_ENERGY,
     STATE_CLASS_MEASUREMENT,
+    STATE_CLASS_TOTAL,
 )
 from esphome.components.remote_base import CONF_RECEIVER_ID, CONF_TRANSMITTER_ID
 
@@ -73,7 +74,7 @@ CONFIG_ENERGY_SCHEMA = sensor.sensor_schema(
     unit_of_measurement=UNIT_KILOWATT_HOURS,
     accuracy_decimals=2,
     device_class=DEVICE_CLASS_ENERGY,
-    state_class=STATE_CLASS_MEASUREMENT,
+    state_class=STATE_CLASS_TOTAL,
 ).extend(
     {
         cv.Optional(CONF_UPDATE_INTERVAL, default="30s"): cv.positive_time_period_microseconds,
