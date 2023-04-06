@@ -17,6 +17,7 @@ class SSWTDSComponent : public uart::UARTDevice, public PollingComponent {
  public:
   void dump_config() override;
   void update() override;
+  void loop() override;
   float get_setup_priority() const override { return setup_priority::DATA; }
   
   void set_source_tds_sensor(sensor::Sensor *source_tds_sensor) { source_tds_sensor_ = source_tds_sensor; }
@@ -24,7 +25,6 @@ class SSWTDSComponent : public uart::UARTDevice, public PollingComponent {
   void set_temperature_sensor(sensor::Sensor *temperature_sensor) { temperature_sensor_ = temperature_sensor; }
 
  protected:
-  void query_();
   int parse_(uint8_t byte);
   int checksum_();
 

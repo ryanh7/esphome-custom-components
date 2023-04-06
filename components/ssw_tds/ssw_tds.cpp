@@ -16,10 +16,11 @@ void SSWTDSComponent::dump_config() {
 }
 
 void SSWTDSComponent::update() {
-  this->query_();
+  this->write_array(URAT_QUERY_COMMAND, sizeof(URAT_QUERY_COMMAND));
+  this->flush();
+}
 
-  delay(200);
-
+void SSWTDSComponent::loop() {
   while (this->available()) {
     uint8_t byte;
     this->read_byte(&byte);
@@ -29,14 +30,6 @@ void SSWTDSComponent::update() {
       this->rx_buffer_.clear();
     }
   }
-}
-
-void SSWTDSComponent::query_() {
-  // Empty RX Buffer
-  while (this->available())
-    this->read();
-  this->write_array(URAT_QUERY_COMMAND, sizeof(URAT_QUERY_COMMAND));
-  this->flush();
 }
 
 int SSWTDSComponent::parse_(uint8_t byte) {
