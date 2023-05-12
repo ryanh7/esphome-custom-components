@@ -10,6 +10,7 @@ from esphome.const import (
 )
 
 DEPENDENCIES = ["uart"]
+AUTO_LOAD = ["light"]
 
 CONF_ON_TOUCH = "on_touch"
 CONF_ON_RELEASE = "on_release"
