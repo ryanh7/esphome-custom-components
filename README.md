@@ -114,27 +114,32 @@ uart:
   
 binary_sensor:
   - platform: cem5855h
-    threshold: #（可选）触发移动的阈值，支持数字或者Number(esphome)
-      moving: 250 #示例配置-数字
-      occupancy: #示例配置-esphome number
-        name: "occ"
-        value: 250 #阈值
-        min_value: 10 #可调节的最小阈值
-        max_value: 99999 #可调节的最大阈值
-        step: 10 #单步调节量
-
     moving: #（可选）有人移动传感器
-      name: mov
-      filters:
-        - delayed_off: 3s
+      - name: mov
+        filters:
+          - delayed_off: 3s
+        threshold: 250 #示例：阈值可以是数字
+      - name: mov2 # 示例：可以配置多个不同阈值的传感器
+        filters:
+          - delayed_off: 3s
+        threshold: 350
     occupancy: #（可选）有人静止传感器
       name: occ
       filters:
         - delayed_off: 3s
+      threshold: #示例： 阈值可以是数字组件
+        name: "occ"
+        value: 250 #阈值
+        min_value: 10 #可调节的最小阈值
+        max_value: 3000 #可调节的最大阈值
+        step: 10 #单步调节量
     motion: #（可选）人在传感器
       name: motion
       filters:
         - delayed_off: 3s #设置一个合适的状态持续时间
+      threshold:
+        moving: 250
+        occupancy: 250
 ```
 * esp32_bt_tracker, bt_presence, bt_rssi
 > 通过经典蓝牙扫描发现蓝牙设备，蓝牙设备须处于可被发现状态

@@ -10,32 +10,52 @@
 namespace esphome {
 namespace cem5855h {
 
+class ThresholdSensor : public binary_sensor::BinarySensor {
+ public:
+  void set_moving_threshold(int moving) { this->moving_threshold_ = moving; }
+  int get_moving_threshold() { return this->moving_threshold_; }
+  void set_occupancy_threshold(int occupancy) { this->occupancy_threshold_ = occupancy; }
+  int get_occupancy_threshold() { return this->occupancy_threshold_; }
+  void update_moving(int value) {
+    if (value >= this->moving_threshold_) {
+      this->publish_state(true);
+      this->publish_state(false);
+    }
+  }
+  void update_occupancy(int value) {
+    if (value >= this->occupancy_threshold_) {
+      this->publish_state(true);
+      this->publish_state(false);
+    }
+  }
+
+ protected:
+  int moving_threshold_{250}, occupancy_threshold_{250};
+};
+
 class CEM5855hComponent : public uart::UARTDevice, public Component {
  public:
   void dump_config() override;
   void loop() override;
   float get_setup_priority() const override { return setup_priority::DATA; }
 
-  void set_moving_threshold(int threshold) { threshold_moving = threshold; };
-  void set_occupancy_threshold(int threshold) { threshold_occupancy = threshold; };
-  void set_moving_sensor(binary_sensor::BinarySensor *moving_sensor) { moving_sensor_ = moving_sensor; }
-  void set_occupancy_sensor(binary_sensor::BinarySensor *occupancy_sensor) { occupancy_sensor_ = occupancy_sensor; }
-  void set_motion_sensor(binary_sensor::BinarySensor *motion_sensor) { motion_sensor_ = motion_sensor; }
+  void register_moving_sensor(ThresholdSensor *moving_sensor) { moving_sensors_.push_back(moving_sensor); }
+  void register_occupancy_sensor(ThresholdSensor *occupancy_sensor) { occupancy_sensors_.push_back(occupancy_sensor); }
+  void register_motion_sensor(ThresholdSensor *motion_sensor) { motion_sensors_.push_back(motion_sensor); }
 
  protected:
   bool parse_(uint8_t byte);
-  int threshold_moving = 250, threshold_occupancy = 250;
 
   std::vector<uint8_t> rx_buffer_;
 
-  binary_sensor::BinarySensor *moving_sensor_{nullptr};
-  binary_sensor::BinarySensor *occupancy_sensor_{nullptr};
-  binary_sensor::BinarySensor *motion_sensor_{nullptr};
+  std::vector<ThresholdSensor *> moving_sensors_;
+  std::vector<ThresholdSensor *> occupancy_sensors_;
+  std::vector<ThresholdSensor *> motion_sensors_;
 };
 
 class ThresholdMovingNumber : public number::Number {
  public:
-  void set_parent(CEM5855hComponent *parent) { this->parent_ = parent; };
+  void set_parent(ThresholdSensor *parent) { this->parent_ = parent; };
 
  protected:
   void control(float value) override {
@@ -44,12 +64,12 @@ class ThresholdMovingNumber : public number::Number {
     }
     this->publish_state(value);
   };
-  CEM5855hComponent *parent_ = nullptr;
+  ThresholdSensor *parent_{nullptr};
 };
 
 class ThresholdOccupancyNumber : public number::Number {
  public:
-  void set_parent(CEM5855hComponent *parent) { this->parent_ = parent; };
+  void set_parent(ThresholdSensor *parent) { this->parent_ = parent; };
 
  protected:
   void control(float value) override {
@@ -58,7 +78,7 @@ class ThresholdOccupancyNumber : public number::Number {
     }
     this->publish_state(value);
   };
-  CEM5855hComponent *parent_ = nullptr;
+  ThresholdSensor *parent_{nullptr};
 };
 
 }  // namespace cem5855h

@@ -10,12 +10,29 @@ static const char *const TAG = "cem5855h";
 void CEM5855hComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "CEM5855H:");
   this->check_uart_settings(115200);
-  ESP_LOGCONFIG(TAG, "  Threshold");
-  ESP_LOGCONFIG(TAG, "    Moving: %d", this->threshold_moving);
-  ESP_LOGCONFIG(TAG, "    Occupancy: %d", this->threshold_occupancy);
-  LOG_BINARY_SENSOR("  ", "Moving", this->moving_sensor_);
-  LOG_BINARY_SENSOR("  ", "Occupancy", this->occupancy_sensor_);
-  LOG_BINARY_SENSOR("  ", "Motion", this->motion_sensor_);
+  if (!this->moving_sensors_.empty()) {
+    ESP_LOGCONFIG(TAG, "  Moving Sensors:");
+    for (auto *sensor : this->moving_sensors_) {
+      LOG_BINARY_SENSOR("  ", "Moving", sensor);
+      ESP_LOGCONFIG(TAG, "    Threshold: %d", sensor->get_moving_threshold());
+    }
+  }
+  if (!this->occupancy_sensors_.empty()) {
+    ESP_LOGCONFIG(TAG, "  Occupancy Sensors:");
+    for (auto *sensor : this->occupancy_sensors_) {
+      LOG_BINARY_SENSOR("  ", "Occupancy", sensor);
+      ESP_LOGCONFIG(TAG, "    Threshold: %d", sensor->get_occupancy_threshold());
+    }
+  }
+  if (!this->motion_sensors_.empty()) {
+    ESP_LOGCONFIG(TAG, "  Motion Sensors:");
+    for (auto *sensor : this->motion_sensors_) {
+      LOG_BINARY_SENSOR("  ", "Motion", sensor);
+      ESP_LOGCONFIG(TAG, "    Threshold:");
+      ESP_LOGCONFIG(TAG, "      Moving: %d", sensor->get_moving_threshold());
+      ESP_LOGCONFIG(TAG, "      Occupancy: %d", sensor->get_occupancy_threshold());
+    }
+  }
 }
 
 void CEM5855hComponent::loop() {
@@ -48,19 +65,17 @@ bool CEM5855hComponent::parse_(uint8_t byte) {
 
   ESP_LOGV(TAG, "recv: %s", raw);
 
-  bool motion = false;
   if (strncmp("mov, ", raw, 5) == 0) {
     for (int i = 5; i < at; i++) {
       if (raw[i] != ' ')
         continue;
       i++;
       int moving = atoi(&raw[i]);
-      if (moving > this->threshold_moving) {
-        motion = true;
-        if (this->moving_sensor_ != nullptr) {
-          this->moving_sensor_->publish_state(true);
-          this->moving_sensor_->publish_state(false);
-        }
+      for (auto *sensor : this->moving_sensors_) {
+        sensor->update_moving(moving);
+      }
+      for (auto *sensor : this->motion_sensors_) {
+        sensor->update_moving(moving);
       }
       break;
     }
@@ -70,20 +85,14 @@ bool CEM5855hComponent::parse_(uint8_t byte) {
         continue;
       i++;
       int occupancy = atoi(&raw[i]);
-      if (occupancy > this->threshold_occupancy) {
-        motion = true;
-        if (this->occupancy_sensor_ != nullptr) {
-          this->occupancy_sensor_->publish_state(true);
-          this->occupancy_sensor_->publish_state(false);
-        }
+      for (auto *sensor : this->occupancy_sensors_) {
+        sensor->update_occupancy(occupancy);
+      }
+      for (auto *sensor : this->motion_sensors_) {
+        sensor->update_occupancy(occupancy);
       }
       break;
     }
-  }
-
-  if (motion && this->motion_sensor_ != nullptr) {
-    this->motion_sensor_->publish_state(true);
-    this->motion_sensor_->publish_state(false);
   }
 
   return false;
