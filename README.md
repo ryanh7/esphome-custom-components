@@ -32,6 +32,10 @@ rf_bridge_cc1101:
   cs_pin: GPIO5 #cc1101的片选pin
   pin: GPIO14 #cc1101的GD0连接在esp上的pin
   frequency: 433.92 #指定收发频率
+  tolerance: 80% #容许信号时长误差
+  filter: 100us #忽略小于这个时长的信号
+  idle: 4ms #信号超时时间
+  buffer_size: 2kb #信号缓存大小
   dump: #可选，未匹配到相关sensor或者没有配置on_code_received时，在控制台打印接收到的内容
     - rc_switch
    on_code_received: #示例，收到内容时打印

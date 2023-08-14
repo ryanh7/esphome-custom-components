@@ -40,14 +40,6 @@ void RFBridgeComponent::setup() {
   }
 
   if (receiver_) {
-#ifdef USE_ESP32
-    receiver_->set_buffer_size(10240);
-#else
-    receiver_->set_buffer_size(1024);
-#endif
-    receiver_->set_filter_us(50);
-    receiver_->set_idle_us(10000);
-    receiver_->set_tolerance(25);
     receiver_->setup();
   }
 

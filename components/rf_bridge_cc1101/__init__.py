@@ -2,6 +2,7 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome import automation, pins
 from esphome.components import spi, remote_base
+from esphome.core import TimePeriod
 from esphome.const import (
     CONF_ID,
     CONF_TRIGGER_ID,
@@ -13,7 +14,11 @@ from esphome.const import (
     CONF_WAIT_TIME,
     CONF_MODE,
     CONF_DUMP,
-    CONF_FREQUENCY
+    CONF_FREQUENCY,
+    CONF_TOLERANCE,
+    CONF_BUFFER_SIZE,
+    CONF_FILTER,
+    CONF_IDLE
 )
 
 AUTO_LOAD = ["remote_base"]
@@ -54,6 +59,19 @@ CONFIG_SCHEMA = cv.All(
             ),
             cv.Optional(CONF_FREQUENCY, default=433.92): cv.float_range(min=300, max=928),
             cv.Optional(CONF_DUMP, default=[]): remote_base.validate_dumpers,
+            cv.Optional(CONF_TOLERANCE, default=50): cv.All(
+                cv.percentage_int, cv.Range(min=0)
+            ),
+            cv.SplitDefault(
+                CONF_BUFFER_SIZE, esp32="10kb", esp8266="2kb"
+            ): cv.validate_bytes,
+            cv.Optional(CONF_FILTER, default="100us"): cv.All(
+                cv.positive_time_period_microseconds,
+                cv.Range(max=TimePeriod(microseconds=255)),
+            ),
+            cv.Optional(
+                CONF_IDLE, default="4ms"
+            ): cv.positive_time_period_microseconds,
             cv.Optional(CONF_ON_CODE_RECEIVED): automation.validate_automation(
                 {
                     cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
@@ -90,6 +108,11 @@ async def to_code(config):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID])
         cg.add(var.register_listener(trigger))
         await automation.build_automation(trigger, [(remote_base.RCSwitchData, "x")], conf)
+    
+    cg.add(var.set_tolerance(config[CONF_TOLERANCE]))
+    cg.add(var.set_buffer_size(config[CONF_BUFFER_SIZE]))
+    cg.add(var.set_filter_us(config[CONF_FILTER]))
+    cg.add(var.set_idle_us(config[CONF_IDLE]))
 
 
 RF_BRIDGE_SCHEMA = cv.Schema(

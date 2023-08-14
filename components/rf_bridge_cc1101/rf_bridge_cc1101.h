@@ -36,6 +36,11 @@ class RFBridgeComponent : public Component,
   void register_listener(remote_base::RemoteReceiverListener *listener);
   void register_dumper(remote_base::RemoteReceiverDumperBase *dumper);
 
+  void set_buffer_size(uint32_t buffer_size) { this->receiver_->set_buffer_size(buffer_size); }
+  void set_filter_us(uint8_t filter_us) { this->receiver_->set_filter_us(filter_us); }
+  void set_idle_us(uint32_t idle_us) { this->receiver_->set_idle_us(idle_us); }
+  void set_tolerance(uint8_t tolerance) { this->receiver_->set_tolerance(tolerance); }
+
  protected:
   void cc1101_setup();
   void write_reg(uint8_t addr, uint8_t value);
