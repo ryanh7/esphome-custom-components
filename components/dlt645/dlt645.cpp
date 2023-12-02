@@ -92,11 +92,11 @@ void DLT645Component::set_address(const std::string &address) {
 }
 
 bool DLT645Component::on_receive(remote_base::RemoteReceiveData data) {
-  std::vector<int32_t> *raw = data.get_raw_data();
+  auto &raw = data.get_raw_data();
   uint8_t bits = 0;
   int bits_at = 0;
   bool parity = false;
-  for (int32_t time : *raw) {
+  for (auto time : raw) {
     uint8_t bit = time > 0 ? 0 : 1;
     time = (time > 0 ? time : -time) + 400;
     for (time -= BIT_TIME; time > 0; time -= BIT_TIME, bits_at++) {
