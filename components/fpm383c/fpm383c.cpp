@@ -6,19 +6,30 @@
 namespace esphome {
 namespace fpm383c {
 
-static const char *const TAG = "fpm383c";
+static const char *const TAG = "fpm383x";
 
 #define UART_FRAME_FLAG 0xF1, 0x1F, 0xE2, 0x2E, 0xB6, 0x6B, 0xA8, 0x8A
 #define DEFAULT_PASSWORD 0x00, 0x00, 0x00, 0x00
+#define UART_WAIT_MS 100
 
 static const uint8_t UART_FRAME_START[8] = {UART_FRAME_FLAG};
 
+void FPM383cComponent::setup() {
+  std::vector<uint8_t> command = {DEFAULT_PASSWORD, 0x03, 0x01};
+  this->command_(command);
+}
+
 void FPM383cComponent::dump_config() {
-  ESP_LOGCONFIG(TAG, "fpm383c:");
+  ESP_LOGCONFIG(TAG, "fpm383x:");
   this->check_uart_settings(57600);
+  ESP_LOGCONFIG(TAG, "  Model ID: %s", this->model_id_);
 }
 
 void FPM383cComponent::loop() {
+  if (!this->available()) {
+    return;
+  }
+
   while (this->available()) {
     uint8_t byte;
     this->read_byte(&byte);
@@ -28,12 +39,11 @@ void FPM383cComponent::loop() {
       this->rx_buffer_.clear();
     }
   }
+
+  this->wait_at_ = micros() + (this->rx_buffer_.empty() ? 0 : UART_WAIT_MS);
 }
 
 void FPM383cComponent::update() {
-  // 查询手指在位
-  this->command_(0x01, 0x35);
-
   switch (this->status_) {
     case STATUS_REGISTING: {
       uint32_t current_time = micros();
@@ -44,22 +54,40 @@ void FPM383cComponent::update() {
     }
     case STATUS_MATCHING: {
       // 查询匹配结果
-      this->command_(0x01, 0x22);
-      this->status_ = STATUS_IDLE;
+      if (!this->have_wait_()) {
+        this->command_(0x01, 0x22);
+        this->status_ = STATUS_IDLE;
+      }
       break;
     }
     default:
       break;
   }
+
+  // 查询手指在位
+  if (!this->have_wait_()) {
+    this->command_(0x01, 0x35);
+  }
 }
 
-void FPM383cComponent::set_light_level(Color color, float level) {
-  uint8_t level_pecent = level * 100;
-  uint8_t command[] = {UART_FRAME_FLAG, 0x00,         0x0C, 0x81, DEFAULT_PASSWORD, 0x02, 0x0F, 0x03, color,
-                       level_pecent,    level_pecent, 0,    0};
-  command[sizeof(command) - 1] = checksum_(command + 11, sizeof(command) - 12);
-  this->write_array(command, sizeof(command));
-  this->flush();
+void FPM383cComponent::turn_on_light(Color color) {
+  std::vector<uint8_t> command = {DEFAULT_PASSWORD, 0x02, 0x0F, 0x01, color, 0, 0, 0};
+  this->command_(command);
+}
+
+void FPM383cComponent::turn_off_light() {
+  std::vector<uint8_t> command = {DEFAULT_PASSWORD, 0x02, 0x0F, 0x00, 0, 0, 0, 0};
+  this->command_(command);
+}
+
+void FPM383cComponent::breathing_light(Color color, uint8_t min_level, uint8_t max_level, uint8_t rate) {
+  std::vector<uint8_t> command = {DEFAULT_PASSWORD, 0x02, 0x0F, 0x03, color, max_level, min_level, rate};
+  this->command_(command);
+}
+
+void FPM383cComponent::flashing_light(Color color, uint8_t on_10ms, uint8_t off_10ms, uint8_t count) {
+  std::vector<uint8_t> command = {DEFAULT_PASSWORD, 0x02, 0x0F, 0x04, color, on_10ms, off_10ms, count};
+  this->command_(command);
 }
 
 void FPM383cComponent::register_fingerprint() {
@@ -68,10 +96,8 @@ void FPM383cComponent::register_fingerprint() {
     this->command_(0x01, 0x15);
   }
   // 自动注册
-  uint8_t command[] = {UART_FRAME_FLAG, 0x00, 0x0B, 0x82, DEFAULT_PASSWORD, 0x01, 0x18, 0x01, 6, 0xFF, 0xFF, 0};
-  command[sizeof(command) - 1] = checksum_(command + 11, sizeof(command) - 12);
-  this->write_array(command, sizeof(command));
-  this->flush();
+  std::vector<uint8_t> command = {DEFAULT_PASSWORD, 0x01, 0x18, 0x01, 6, 0xFF, 0xFF};
+  this->command_(command);
 
   this->last_register_progress_time_ = micros();
   this->status_ = STATUS_REGISTING;
@@ -79,10 +105,8 @@ void FPM383cComponent::register_fingerprint() {
 
 void FPM383cComponent::clear_fingerprint() {
   // 清除全部指纹
-  uint8_t command[] = {UART_FRAME_FLAG, 0x00, 0x0A, 0x83, DEFAULT_PASSWORD, 0x01, 0x31, 0x01, 0x00, 0x00, 0};
-  command[sizeof(command) - 1] = checksum_(command + 11, sizeof(command) - 12);
-  this->write_array(command, sizeof(command));
-  this->flush();
+  std::vector<uint8_t> command = {DEFAULT_PASSWORD, 0x01, 0x31, 0x01, 0x00, 0x00};
+  this->command_(command);
 }
 
 void FPM383cComponent::cancel() {
@@ -98,32 +122,35 @@ int FPM383cComponent::parse_(uint8_t byte) {
   this->rx_buffer_.push_back(byte);
   const uint8_t *raw = &this->rx_buffer_[0];
 
-  ESP_LOGVV(TAG, "Processing byte: 0x%02X, at=%d", byte, at);
-
   static uint16_t frame_length = 0;
 
   // Start
-  if (at < sizeof(UART_FRAME_START))
+  if (at < sizeof(UART_FRAME_START)) // read frame header:F1,1F,E2,2E,B6,6B,A8,8A
     return byte == UART_FRAME_START[at];
 
-  if (at < 9)
+  if (at < sizeof(UART_FRAME_START) + 1) // read data length : 2 bytes
     return true;
 
-  if (at == 9) {
-    frame_length = encode_uint16(raw[8], raw[9]) + 11;
-    return frame_length > 17 && frame_length < 30;
+  if (at == sizeof(UART_FRAME_START) + 1) { //
+    frame_length = encode_uint16(raw[at-1], raw[at]) + sizeof(UART_FRAME_START) + 2          + 1; 
+    //                  ^data length                     ^header                  ^data length ^SOF checksum
+    return frame_length > 17 && frame_length < 256;
+  }
+
+  if (at == sizeof(UART_FRAME_START) + 2) { // read SOF checksum and check
+    return raw[at] == checksum_(raw, at);
   }
 
   if (at < frame_length - 1)
     return true;
 
-  if (!this->check_()) {
-    ESP_LOGE(TAG, "checksum failed! ACK:%02X %02X", raw[15], raw[16]);
+  // at last
+
+  // check data checksum
+  if (raw[at] != checksum_((raw + sizeof(UART_FRAME_START) + 3), (at - sizeof(UART_FRAME_START) - 3))) {
+    ESP_LOGE(TAG, "Data checksum failed!");
     return false;
   }
-
-  ESP_LOGV(TAG, "response: ACK=%02X %02X, error=%02X%02X%02X%02X", raw[15], raw[16], raw[17], raw[18], raw[19],
-           raw[20]);
 
   uint16_t ack = encode_uint16(raw[15], raw[16]);
   switch (ack) {
@@ -154,6 +181,14 @@ int FPM383cComponent::parse_(uint8_t byte) {
       } else {
         on_match_(false, 0, 0);
       }
+      break;
+    }
+    // ID
+    case 0x0301: {
+      for(uint8_t i = 0; i < 16; i++) {
+        this->model_id_[i] = raw[21 + i];
+      }
+      this->model_id_[16] = 0x00;
       break;
     }
     // 重置
@@ -206,46 +241,33 @@ void FPM383cComponent::on_register_progress_(uint16_t id, uint8_t step, uint8_t 
 }
 
 void FPM383cComponent::command_(uint8_t cmd1, uint8_t cmd2) {
-  uint8_t command[] = {UART_FRAME_FLAG, 0x00, 0x07, 0x86, DEFAULT_PASSWORD, cmd1, cmd2, 0};
-  command[sizeof(command) - 1] = checksum_(command + 11, sizeof(command) - 12);
-  this->write_array(command, sizeof(command));
-  this->flush();
+  std::vector<uint8_t> command = {DEFAULT_PASSWORD, cmd1, cmd2};
+  this->command_(command);
 }
 
-uint8_t FPM383cComponent::checksum_(uint8_t *data, uint32_t length) {
-  uint32_t i = 0;
+void FPM383cComponent::command_(std::vector<uint8_t> &data) {
+  std::vector<uint8_t> command = {UART_FRAME_FLAG};
+  uint16_t data_length = data.size() + 1;
+  command.push_back((uint8_t)(data_length >> 8));
+  command.push_back((uint8_t)(data_length & 0xFF));
+  command.push_back(checksum_(&command[0], command.size()));
+  command.insert(command.end(), data.begin(), data.end());
+  command.push_back(checksum_(&data[0], data.size()));
+  this->write_array(command);
+  this->flush();
+  this->wait_at_ = micros() + UART_WAIT_MS;
+}
+
+bool FPM383cComponent::have_wait_() { 
+  return micros() < this->wait_at_; 
+}
+
+uint8_t FPM383cComponent::checksum_(const uint8_t *data, const uint32_t length) {
   int8_t sum = 0;
-  for (i = 0; i < length; i++) {
+  for (uint32_t i = 0; i < length; i++) {
     sum += data[i];
   }
   return (uint8_t) ((~sum) + 1);
-}
-
-bool FPM383cComponent::check_() {
-  size_t buffer_length = this->rx_buffer_.size();
-  if (buffer_length < 12)
-    return false;
-
-  uint8_t *raw = &this->rx_buffer_[0];
-
-  if (raw[10] != checksum_(raw, 10)) {
-    return false;
-  }
-
-  uint16_t user_raw_length = encode_uint16(raw[8], raw[9]);
-  if (user_raw_length + 11 > buffer_length) {
-    return false;
-  }
-
-  uint8_t *user_raw = raw + 11;
-  if (user_raw[user_raw_length - 1] != checksum_(user_raw, user_raw_length - 1)) {
-    if (!(raw[15] == 0x01 && raw[16] == 0x22)) {  // fpm383c的bug
-      return false;
-    }
-  }
-
-  // TODO: 检查密码
-  return true;
 }
 
 }  // namespace fpm383c

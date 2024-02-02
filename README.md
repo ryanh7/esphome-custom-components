@@ -211,6 +211,29 @@ light:
   - platform: fpm383c #配置RGB指示灯，所有颜色都会被重新映射到6种颜色（白色映射到红色）
     name: "指示灯"
     id: fpm383c_id
+    effects: # 仅支持以下效果 
+      - breathing: # 呼吸灯
+          name: "Breathing" # 效果默认名称
+          min_brightness: 0% # 最小亮度
+          max_brightness: 100% # 最大亮度
+          rate: 50% # 每秒变化百分比
+      - flashing: # 闪烁
+          name: "Flashing" # 效果默认名称
+          on_length: 200ms # 亮灯时间（10ms倍数时间）
+          off_length: 100ms # 灭灯时间（10ms倍数时间）
+          count: 3 # 闪烁次数
+
+# 灯光效果示例
+button:
+  - platform: template
+    name: "breathing"
+    on_press:
+      - light.turn_on: # 打开蓝色呼吸灯
+          id: fpm383c_id
+          red: 0
+          green: 0
+          blue: 100%
+          effect: Breathing
 ```
 > 可用动作
 > - fpm383c.register 注册新指纹
