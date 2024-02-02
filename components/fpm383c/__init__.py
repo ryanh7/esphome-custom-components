@@ -24,11 +24,13 @@ CONF_FPM383C_ID = "fpm383c_id"
 
 CONF_ON_TOUCH = "on_touch"
 CONF_ON_RELEASE = "on_release"
+CONF_ON_RESET = "on_reset"
 CONF_ON_FINGER_REGISTER_PROGRESS="on_finger_register_progress"
 CONF_ON_FINGER_REGISTER_SUCESSED="on_finger_register_sucessed"
 CONF_ON_FINGER_REGISTER_FAILED="on_finger_register_failed"
 CONF_ON_LENGTH= "on_length"
 CONF_OFF_LENGTH = "off_length"
+CONF_AUTO_LEARNING = "auto_learning"
 
 fpm383c_ns = cg.esphome_ns.namespace("fpm383c")
 FPM383cComponent = fpm383c_ns.class_(
@@ -39,6 +41,9 @@ TouchTrigger = fpm383c_ns.class_(
 )
 ReleaseTrigger = fpm383c_ns.class_(
     "ReleaseTrigger", automation.Trigger.template()
+)
+ResetTrigger = fpm383c_ns.class_(
+    "ResetTrigger", automation.Trigger.template()
 )
 RegisterProgress = fpm383c_ns.struct("RegisterProgress")
 RegisterProgressTrigger = fpm383c_ns.class_(
@@ -77,6 +82,7 @@ CONFIG_SCHEMA = cv.All(
     cv.Schema(
         {
             cv.GenerateID(): cv.declare_id(FPM383cComponent),
+            cv.Optional(CONF_AUTO_LEARNING, default=True): cv.boolean,
             cv.Optional(
                 CONF_ON_TOUCH
             ): automation.validate_automation(
@@ -92,6 +98,15 @@ CONFIG_SCHEMA = cv.All(
                 {
                     cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
                         ReleaseTrigger
+                    ),
+                }
+            ),
+            cv.Optional(
+                CONF_ON_RESET
+            ): automation.validate_automation(
+                {
+                    cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
+                        ResetTrigger
                     ),
                 }
             ),
@@ -133,6 +148,7 @@ async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
     await cg.register_component(var, config)
     await uart.register_uart_device(var, config)
+    cg.add(var.set_auto_learning(config[CONF_AUTO_LEARNING]))
 
     for conf in config.get(CONF_ON_TOUCH, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID])
@@ -141,6 +157,10 @@ async def to_code(config):
     for conf in config.get(CONF_ON_RELEASE, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID])
         cg.add(var.add_touch_listener(trigger))
+        await automation.build_automation(trigger, [], conf)
+    for conf in config.get(CONF_ON_RESET, []):
+        trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID])
+        cg.add(var.add_reset_listener(trigger))
         await automation.build_automation(trigger, [], conf)
     for conf in config.get(CONF_ON_FINGER_SCAN_MATCHED, []):
         trigger = cg.new_Pvariable(conf[CONF_TRIGGER_ID])

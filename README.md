@@ -167,6 +167,12 @@ sensor: #示例，显示设备信号强度
 > 支持海凌科fpm383c电容式指纹模块
 ```yaml
 #配置示例
+esphome:
+  on_boot: # 可选，上电重置指纹模块
+    priority: 250
+    then:
+      - fpm383c.reset
+
 uart: #指定串口
   id: uart_fpm383c
   baud_rate: 57600
@@ -174,6 +180,14 @@ uart: #指定串口
   tx_pin: GPIO25
 
 fpm383c:
+  auto_learning: True # 默认根据匹配结果自动更新指纹
+  on_reset: # 可选，指纹模块完成初始化
+      - light.turn_on: #示例，打开蓝灯
+          id: fpm383c_id
+          brightness: 50%
+          red: 0
+          green: 0
+          blue: 100%
   on_touch: #手指触摸模块时触发
     - light.turn_on: #示例，打开黄灯
         id: fpm383c_id

@@ -14,10 +14,7 @@ static const char *const TAG = "fpm383x";
 
 static const uint8_t UART_FRAME_START[8] = {UART_FRAME_FLAG};
 
-void FPM383cComponent::setup() {
-  std::vector<uint8_t> command = {DEFAULT_PASSWORD, 0x03, 0x01};
-  this->command_(command);
-}
+void FPM383cComponent::setup() { this->command_(0x03, 0x01); }
 
 void FPM383cComponent::dump_config() {
   ESP_LOGCONFIG(TAG, "fpm383x:");
@@ -62,6 +59,14 @@ void FPM383cComponent::update() {
     }
     default:
       break;
+  }
+
+  if (this->enable_auto_learning && this->renew_id_ != 0xFFFF && !this->have_wait_()) {
+    // 自学习指纹
+    std::vector<uint8_t> update_command = {DEFAULT_PASSWORD, 0x01, 0x16, (uint8_t) (this->renew_id_ >> 8),
+                                           (uint8_t) (this->renew_id_ & 0xFF)};
+    this->command_(update_command);
+    this->renew_id_ = 0xFFFF;
   }
 
   // 查询手指在位
@@ -109,13 +114,9 @@ void FPM383cComponent::clear_fingerprint() {
   this->command_(command);
 }
 
-void FPM383cComponent::cancel() {
-  this->command_(0x01, 0x15);
-}
+void FPM383cComponent::cancel() { this->command_(0x01, 0x15); }
 
-void FPM383cComponent::reset() {
-  this->command_(0x02, 0x02);
-}
+void FPM383cComponent::reset() { this->command_(0x02, 0x02); }
 
 int FPM383cComponent::parse_(uint8_t byte) {
   size_t at = this->rx_buffer_.size();
@@ -125,19 +126,24 @@ int FPM383cComponent::parse_(uint8_t byte) {
   static uint16_t frame_length = 0;
 
   // Start
-  if (at < sizeof(UART_FRAME_START)) // read frame header:F1,1F,E2,2E,B6,6B,A8,8A
+  if (at == 0 && raw[at] == 0x55) {  // reset flag
+    this->on_reset();
+    return false;
+  }
+
+  if (at < sizeof(UART_FRAME_START))  // read frame header:F1,1F,E2,2E,B6,6B,A8,8A
     return byte == UART_FRAME_START[at];
 
-  if (at < sizeof(UART_FRAME_START) + 1) // read data length : 2 bytes
+  if (at < sizeof(UART_FRAME_START) + 1)  // read data length : 2 bytes
     return true;
 
-  if (at == sizeof(UART_FRAME_START) + 1) { //
-    frame_length = encode_uint16(raw[at-1], raw[at]) + sizeof(UART_FRAME_START) + 2          + 1; 
+  if (at == sizeof(UART_FRAME_START) + 1) {  //
+    frame_length = encode_uint16(raw[at - 1], raw[at]) + sizeof(UART_FRAME_START) + 2 + 1;
     //                  ^data length                     ^header                  ^data length ^SOF checksum
     return frame_length > 17 && frame_length < 256;
   }
 
-  if (at == sizeof(UART_FRAME_START) + 2) { // read SOF checksum and check
+  if (at == sizeof(UART_FRAME_START) + 2) {  // read SOF checksum and check
     return raw[at] == checksum_(raw, at);
   }
 
@@ -185,7 +191,7 @@ int FPM383cComponent::parse_(uint8_t byte) {
     }
     // ID
     case 0x0301: {
-      for(uint8_t i = 0; i < 16; i++) {
+      for (uint8_t i = 0; i < 16; i++) {
         this->model_id_[i] = raw[21 + i];
       }
       this->model_id_[16] = 0x00;
@@ -223,7 +229,14 @@ void FPM383cComponent::on_touch_(bool touched) {
   }
 }
 
+void FPM383cComponent::on_reset() {
+  for (auto *listener : this->reset_listeners_) {
+    listener->on_reset();
+  }
+}
+
 void FPM383cComponent::on_match_(bool sucessed, uint16_t id, uint16_t score) {
+  this->renew_id_ = sucessed ? id : 0xFFFF;
   for (auto *listener : this->fingerprint_match_listeners_) {
     listener->on_match(sucessed, id, score);
   }
@@ -248,8 +261,8 @@ void FPM383cComponent::command_(uint8_t cmd1, uint8_t cmd2) {
 void FPM383cComponent::command_(std::vector<uint8_t> &data) {
   std::vector<uint8_t> command = {UART_FRAME_FLAG};
   uint16_t data_length = data.size() + 1;
-  command.push_back((uint8_t)(data_length >> 8));
-  command.push_back((uint8_t)(data_length & 0xFF));
+  command.push_back((uint8_t) (data_length >> 8));
+  command.push_back((uint8_t) (data_length & 0xFF));
   command.push_back(checksum_(&command[0], command.size()));
   command.insert(command.end(), data.begin(), data.end());
   command.push_back(checksum_(&data[0], data.size()));
@@ -258,9 +271,7 @@ void FPM383cComponent::command_(std::vector<uint8_t> &data) {
   this->wait_at_ = micros() + UART_WAIT_MS;
 }
 
-bool FPM383cComponent::have_wait_() { 
-  return micros() < this->wait_at_; 
-}
+bool FPM383cComponent::have_wait_() { return micros() < this->wait_at_; }
 
 uint8_t FPM383cComponent::checksum_(const uint8_t *data, const uint32_t length) {
   int8_t sum = 0;

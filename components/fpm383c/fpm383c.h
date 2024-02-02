@@ -20,6 +20,11 @@ class TouchListener {
   virtual void on_touch(bool touched) = 0;
 };
 
+class ResetListener {
+ public:
+  virtual void on_reset() = 0;
+};
+
 class FingerprintRegisterListener {
  public:
   virtual void on_progress(uint16_t id, uint8_t step, uint8_t progress_in_percent) = 0;
@@ -42,12 +47,14 @@ class FPM383cComponent : public uart::UARTDevice, public PollingComponent {
   void breathing_light(Color color, uint8_t min_level, uint8_t max_level, uint8_t rate);
   void flashing_light(Color color, uint8_t on_10ms, uint8_t off_10ms, uint8_t count);
   bool is_touched() { return this->flag_touched_; }
+  void set_auto_learning(bool enable) {this->enable_auto_learning = enable;};
   void register_fingerprint();
   void clear_fingerprint();
   void cancel();
   void reset();
 
   void add_touch_listener(TouchListener *listener) { this->touch_listeners_.push_back(listener); }
+  void add_reset_listener(ResetListener *listener) { this->reset_listeners_.push_back(listener); }
   void add_fingerprint_register_listener(FingerprintRegisterListener *listener) {
     this->fingerprint_register_listeners_.push_back(listener);
   }
@@ -59,6 +66,7 @@ class FPM383cComponent : public uart::UARTDevice, public PollingComponent {
   int parse_(uint8_t byte);
   uint8_t checksum_(const uint8_t *data, const uint32_t length);
   void on_touch_(bool touched);
+  void on_reset();
   void on_register_progress_(uint16_t id, uint8_t step, uint8_t progress_in_percent);
   void on_match_(bool sucessed, uint16_t id, uint16_t score);
   void command_(uint8_t cmd1, uint8_t cmd2);
@@ -66,10 +74,13 @@ class FPM383cComponent : public uart::UARTDevice, public PollingComponent {
   bool have_wait_();
 
   std::vector<uint8_t> rx_buffer_;
+  bool enable_auto_learning{true};
+  uint16_t renew_id_{0xFFFF};
   bool flag_touched_ = false;
   uint32_t last_register_progress_time_, wait_at_{0};
   Status status_ = STATUS_IDLE;
   std::vector<TouchListener *> touch_listeners_;
+  std::vector<ResetListener *> reset_listeners_;
   std::vector<FingerprintRegisterListener *> fingerprint_register_listeners_;
   std::vector<FingerprintMatchListener *> fingerprint_match_listeners_;
 
@@ -230,6 +241,13 @@ class ReleaseTrigger : public Trigger<>, public TouchListener {
     if (!touched) {
       this->trigger();
     }
+  }
+};
+
+class ResetTrigger : public Trigger<>, public ResetListener {
+ public:
+  void on_reset() override {
+    this->trigger();
   }
 };
 
