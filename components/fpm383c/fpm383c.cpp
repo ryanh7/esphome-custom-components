@@ -37,13 +37,13 @@ void FPM383cComponent::loop() {
     }
   }
 
-  this->wait_at_ = micros() + (this->rx_buffer_.empty() ? 0 : UART_WAIT_MS);
+  this->wait_at_ = millis() + (this->rx_buffer_.empty() ? 0 : UART_WAIT_MS);
 }
 
 void FPM383cComponent::update() {
   switch (this->status_) {
     case STATUS_REGISTING: {
-      uint32_t current_time = micros();
+      uint32_t current_time = millis();
       if (current_time - this->last_register_progress_time_ > 15000) {
         this->status_ = STATUS_IDLE;
       }
@@ -104,7 +104,7 @@ void FPM383cComponent::register_fingerprint() {
   std::vector<uint8_t> command = {DEFAULT_PASSWORD, 0x01, 0x18, 0x01, 6, 0xFF, 0xFF};
   this->command_(command);
 
-  this->last_register_progress_time_ = micros();
+  this->last_register_progress_time_ = millis();
   this->status_ = STATUS_REGISTING;
 }
 
@@ -168,7 +168,7 @@ int FPM383cComponent::parse_(uint8_t byte) {
     }
     // 自动注册结果
     case 0x0118: {
-      this->last_register_progress_time_ = micros();
+      this->last_register_progress_time_ = millis();
       uint16_t id = encode_uint16(raw[22], raw[23]);
       this->on_register_progress_(id, raw[21], raw[24]);
       break;
@@ -268,10 +268,13 @@ void FPM383cComponent::command_(std::vector<uint8_t> &data) {
   command.push_back(checksum_(&data[0], data.size()));
   this->write_array(command);
   this->flush();
-  this->wait_at_ = micros() + UART_WAIT_MS;
+  this->wait_at_ = millis() + UART_WAIT_MS;
 }
 
-bool FPM383cComponent::have_wait_() { return micros() < this->wait_at_; }
+bool FPM383cComponent::have_wait_() { 
+  auto now = millis();
+  return (now < this->wait_at_) && (now > this->wait_at_ - UART_WAIT_MS);
+}
 
 uint8_t FPM383cComponent::checksum_(const uint8_t *data, const uint32_t length) {
   int8_t sum = 0;
