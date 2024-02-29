@@ -306,3 +306,61 @@ uart:
 telnet:
   port: 23
 ```
+
+* Telnet
+> tcp转发串口
+```yaml
+#配置示例
+uart:
+  rx_pin: RX
+  tx_pin: TX
+  baud_rate: 115200
+  rx_buffer_size: 1kB
+
+telnet:
+  port: 23
+```
+
+* PTX_YK1_QMIMB
+> 支持平头熊无线蓝牙开关（型号：PTX_YK1_QMIMB）
+```yaml
+#配置示例
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 300ms
+    window: 300ms
+    active: false
+  on_ble_advertise: # 调试用途，按下无线按钮可查找蓝牙开关MAC地址
+    then:
+      - lambda: |-
+          for (auto data : x.get_manufacturer_datas()) {
+            if (data.uuid == esp32_ble_tracker::ESPBTUUID::from_uint16(0x5348)) {
+              ESP_LOGD("ptx_yk1", "Found ptx_yk1_qmimb: %s", x.address_str().c_str());
+              return;
+            }
+          }
+
+binary_sensor:
+  - platform: ptx_yk1
+    mac_address: "XX:XX:XX:XX:XX:XX" # 蓝牙开关MAC地址，可使用上面的调试代码查找新开关的MAC地址
+    name: "BLE Button"
+    timeout: 300ms # 可选，蓝牙BLE信号接收的超时时间。取决于信号环境和esp32_ble_tracker的scan_parameters配置。如果时间设置过短，可能会导致长按误判为短按；而时间设置过长则会延迟蓝牙开关的松开判定。
+    on_multi_click: # 单击、双击、长按示例配置
+      - timing:
+          - ON for at most 2s # 短按须少于2秒
+          - OFF for at least 1s # 1秒内无按下动作，判定为单击
+        then:
+          - logger.log: "Clicked" # 配置单击动作
+      - timing:
+          - ON for at most 2s # 第一次短按须少于2秒
+          - OFF for 0s to 1s # 两次短按须间隔1秒以内
+          - ON for at most 2s # 第二次短按须少于少于2秒
+          - OFF for at least 0s
+        then:
+          - logger.log: "Double-Clicked" # 配置双击动作
+      - timing:
+          - ON for at least 2s # 长按须大于2秒
+        then:
+          - logger.log: "Keep-Clicked" # 配置长按动作
+```
+注意：这款蓝牙开关可能无法识别快速双击。
