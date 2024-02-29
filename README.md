@@ -361,6 +361,6 @@ binary_sensor:
       - timing:
           - ON for at least 2s # 长按须大于2秒
         then:
-          - logger.log: "Keep-Clicked" # 配置长按动作
+          - logger.log: "Long-Pressed" # 配置长按动作
 ```
 注意：这款蓝牙开关可能无法识别快速双击。
