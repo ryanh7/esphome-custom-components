@@ -114,6 +114,14 @@ sensor:
       name: "Smoke Detector Status"
     status_text: # 可选：报警器文本状态 text sensor
       name: "Smoke Detector Status Text"
+      filters: # 可选：翻译文本状态
+        - map:
+          - normal -> 正常监测
+          - alert -> 火灾报警
+          - fault -> 设备故障
+          - self-check -> 设备自检
+          - analog alert -> 模拟报警
+          - unkown -> 未知状态
     battery_level: # 可选：报警器电量 sensor
       name: "Smoke Detector Battery"
 ```
