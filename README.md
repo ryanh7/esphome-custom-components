@@ -1,5 +1,5 @@
 # esphome-custom-components
-esphome的一些新增组件支持
+esphome扩展组件
 ## 如何使用
 请参考[esphome文档](https://www.esphome.io/components/external_components.html)。
 ```yaml
@@ -10,9 +10,16 @@ external_components:
 ```
 
 ## 组件列表
-* audio_player
+### Audio Player
 > esp8266 通过http流播放wav
+<details>
+  <summary>配置示例</summary>
+
 ```yaml
+external_components:
+  - source: github://ryanh7/esphome-custom-components
+    components: [ audio_player ]
+
 media_player:
   - platform: audio_player
     name: "Media Player"
@@ -24,9 +31,18 @@ media_player:
       wclk: GPIO3
       dout: GPIO2
 ```
-* rf_bridge_cc1101
-> cc1101 射频收发
+</details>
+
+### CC1101
+> cc1101 315/433mHz射频收发
+<details>
+  <summary>配置示例</summary>
+
 ```yaml
+external_components:
+  - source: github://ryanh7/esphome-custom-components
+    components: [ rf_bridge_cc1101 ]
+
 rf_bridge_cc1101:
   spi_id: cc1101 #与cc1101连接的spi总线id
   cs_pin: GPIO5 #cc1101的片选pin
@@ -52,27 +68,45 @@ binary_sensor:
     code: "101010111110010010101010" #dump中打印的值
     protocol: 1
 ```
-* xiaomi_m1st500
+</details>
+
+### Xiaomi Toothbrush M1ST500
 > 小米电动牙刷T500
+<details>
+  <summary>配置示例</summary>
+
 ```yaml
-#配置示例
+external_components:
+  - source: github://ryanh7/esphome-custom-components
+    components: [ xiaomi_m1st500 ]
+
 esp32_ble_tracker:
+
 sensor:
   - platform: xiaomi_m1st500
-    mac_address: "F0:A9:97:FF:03:7E" #你的牙刷mac地址
+    mac_address: "XX:XX:XX:XX:XX:XX" #你的牙刷mac地址
     score:
       name: "Toothbrush Score" #刷牙分数，在一次完整的2分钟刷牙后得出
     battery_level:
        name: "Toothbrush Battery Level" #电池电量
 ```
-* xiaomi_smoke_detector
+</details>
+
+### Xiaomi Smoke Detector MCN02
 > 小米烟雾报警器蓝牙版mcn02
+<details>
+  <summary>配置示例</summary>
+
 ```yaml
-#配置示例
+external_components:
+  - source: github://ryanh7/esphome-custom-components
+    components: [ xiaomi_smoke_detector ]
+
 esp32_ble_tracker:
+
 sensor:
   - platform: xiaomi_smoke_detector
-    mac_address: "00:00:00:00:00:00" #烟雾报警器蓝牙mac地址
+    mac_address: "XX:XX:XX:XX:XX:XX" #烟雾报警器蓝牙mac地址
     bindkey: "0000000000000000000000000000000" #token
     alert: # 可选：报警 binary sensor
       name: "Smoke Detector Alert" 
@@ -83,10 +117,18 @@ sensor:
     battery_level: # 可选：报警器电量 sensor
       name: "Smoke Detector Battery"
 ```
-* ssw_tds
+</details>
+
+### ssw_tds
 > 支持型号为ssw-tds-2u的一款基于urat协议的2路带水温tds检测仪。可输出双路tds及一路水温。
+<details>
+  <summary>配置示例</summary>
+
 ```yaml
-#配置示例
+external_components:
+  - source: github://ryanh7/esphome-custom-components
+    components: [ ssw_tds ]
+
 uart:
   id: uart_tds
   baud_rate: 9600
@@ -103,11 +145,18 @@ sensor:
       name: "Water Temperature" #水温
     update_interval: 5s # 可选，更新间隔默认5s
 ```
+</details>
 
-* cem5855h
+### CEM5855H
 > 支持某国产芯片的毫米波雷达，同样适用于LD1115H。只需要连接VCC,GND,TX(CEM5855H)->RX(MCU)。阈值配置参考[Number](https://esphome.io/components/number/index.html)
+<details>
+  <summary>配置示例</summary>
+
 ```yaml
-#配置示例
+external_components:
+  - source: github://ryanh7/esphome-custom-components
+    components: [ cem5855h ]
+
 logger:
   level: VERBOSE #如果需要在日志中查看串口信息，设置日志级别为VERBOSE
 
@@ -145,28 +194,44 @@ binary_sensor:
         moving: 250
         occupancy: 250
 ```
-* esp32_bt_tracker, bt_presence, bt_rssi
+</details>
+
+### esp32_bt_tracker, bt_presence, bt_rssi
 > 通过经典蓝牙扫描发现蓝牙设备，蓝牙设备须处于可被发现状态
+<details>
+  <summary>配置示例</summary>
+
 ```yaml
-#配置示例
+external_components:
+  - source: github://ryanh7/esphome-custom-components
+    components: [ esp32_bt_tracker, bt_presence, bt_rssi ]
+
 esp32_bt_tracker: #启用经典蓝牙扫描组件，控制台会以debug消息打印扫描到的未设置sensor的设备mac
   scan_parameters:
       duration: 5s #每次扫描持续时间，影响不大
 
 binary_sensor: #示例，扫描到设备
   - platform: bt_presence
-    mac_address: C4:C0:82:0F:E8:54 #安卓手机蓝牙mac地址
+    mac_address: XX:XX:XX:XX:XX:XX #安卓手机蓝牙mac地址
     name: "android"
 
 sensor: #示例，显示设备信号强度
   - platform: bt_rssi
-    mac_address: C4:C0:82:0F:E8:54 #安卓手机蓝牙mac地址
+    mac_address: XX:XX:XX:XX:XX:XX #安卓手机蓝牙mac地址
     name: "android"
 ```
-* fpm383c
+</details>
+
+### fpm383c
 > 支持海凌科fpm383c电容式指纹模块
+<details>
+  <summary>配置示例</summary>
+
 ```yaml
-#配置示例
+external_components:
+  - source: github://ryanh7/esphome-custom-components
+    components: [ fpm383c ]
+
 esphome:
   on_boot: # 可选，上电重置指纹模块
     priority: 250
@@ -249,16 +314,24 @@ button:
           blue: 100%
           effect: Breathing
 ```
+</details>
+
 > 可用动作
 > - fpm383c.register 注册新指纹
 > - fpm383c.clear 删除已注册指纹
 > - fpm383c.cancel 取消指纹匹配或注册
 > - fpm383c.reset 重启指纹模块
 
-* DL/T 645
+### DL/T 645
 > 支持符合DL/T 645-2007规范的电表
+<details>
+  <summary>配置示例</summary>
+
 ```yaml
-#配置示例
+external_components:
+  - source: github://ryanh7/esphome-custom-components
+    components: [ dlt645 ]
+
 remote_transmitter:
   pin: GPIO4
   carrier_duty_percent: 50%
@@ -293,10 +366,18 @@ dlt645:
     name: "Energy C" #当前C相正向有功电能
     update_interval: 30s #更新间隔
 ```
-* Telnet
+</details>
+
+### Telnet
 > tcp转发串口
+<details>
+  <summary>配置示例</summary>
+
 ```yaml
-#配置示例
+external_components:
+  - source: github://ryanh7/esphome-custom-components
+    components: [ telnet ]
+
 uart:
   rx_pin: RX
   tx_pin: TX
@@ -306,25 +387,18 @@ uart:
 telnet:
   port: 23
 ```
+</details>
 
-* Telnet
-> tcp转发串口
-```yaml
-#配置示例
-uart:
-  rx_pin: RX
-  tx_pin: TX
-  baud_rate: 115200
-  rx_buffer_size: 1kB
-
-telnet:
-  port: 23
-```
-
-* PTX_YK1_QMIMB
+### PTX_YK1_QMIMB
 > 支持平头熊无线蓝牙开关（型号：PTX_YK1_QMIMB）
+<details>
+  <summary>配置示例</summary>
+
 ```yaml
-#配置示例
+external_components:
+  - source: github://ryanh7/esphome-custom-components
+    components: [ ptx_yk1 ]
+
 esp32_ble_tracker:
   scan_parameters:
     interval: 300ms
@@ -354,7 +428,7 @@ binary_sensor:
       - timing:
           - ON for at most 2s # 第一次短按须少于2秒
           - OFF for 0s to 1s # 两次短按须间隔1秒以内
-          - ON for at most 2s # 第二次短按须少于少于2秒
+          - ON for at most 2s # 第二次短按须少于2秒
           - OFF for at least 0s
         then:
           - logger.log: "Double-Clicked" # 配置双击动作
@@ -363,4 +437,6 @@ binary_sensor:
         then:
           - logger.log: "Long-Pressed" # 配置长按动作
 ```
+</details>
+
 注意：这款蓝牙开关可能无法识别快速双击。
