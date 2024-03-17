@@ -448,3 +448,52 @@ binary_sensor:
 </details>
 
 注意：这款蓝牙开关可能无法识别快速双击。
+
+### 小米通用遥控
+> 支持小米通用遥控协议
+<details>
+  <summary>配置示例</summary>
+
+```yaml
+external_components:
+  - source: github://ryanh7/esphome-custom-components
+    components: [ xiaomi_remote ]
+
+esp32_ble_tracker:
+  scan_parameters:
+    interval: 300ms
+    window: 300ms
+    active: false
+
+xiaomi_remote:
+  mac_address: XX:XX:XX:XX:XX:XX
+  bindkey: "0000000000000000000000000000000" #token，可选，不配置为不加密
+  press: #按下动作传感器，可配置一到多个，示例为一个
+    name: button binary
+    button: 0 # 可选，配置按钮编号（0-9），默认任意按钮
+  action: #按键动作传感器（0:无动作 1:单击 2：双击 3：三击 99：长按），可配置一到多个，示例为多个
+    - name: button 0 action
+      button: 0 # 可选，配置按钮编号（0-9），默认任意按钮
+    - name: button 1 action
+      button: 1
+  action_text: #按键动作文本传感器（Idle:无动作 Click:单击 Double-click：双击 Triple-click：三击 Long press：长按），可配置一到多个，示例为多个
+    name: button text
+    button: 0 # 可选，配置按钮编号（0-9），默认任意按钮
+  on_click: # 单击示例
+    - button: 0
+      then:
+        - logger.log: "单击0"
+    - button: 1
+      then:
+        - logger.log: "单击1"
+  on_double_click: # 双击示例
+    then:
+      - logger.log: "双击"
+  on_triple_click: # 三击示例
+    then:
+      - logger.log: "三击"
+  on_long_press: # 长按示例
+    then:
+      - logger.log: "长按"
+```
+</details>
