@@ -469,16 +469,18 @@ xiaomi_remote:
   mac_address: XX:XX:XX:XX:XX:XX
   bindkey: "0000000000000000000000000000000" #token，可选，不配置为不加密
   press: #按下动作传感器，可配置一到多个，示例为一个
-    name: button binary
+    name: Button Binary
     button: 0 # 可选，配置按钮编号（0-9），默认任意按钮
   action: #按键动作传感器（0:无动作 1:单击 2：双击 3：三击 99：长按），可配置一到多个，示例为多个
-    - name: button 0 action
+    - name: Button 0 Action
       button: 0 # 可选，配置按钮编号（0-9），默认任意按钮
-    - name: button 1 action
+    - name: Button 1 Action
       button: 1
   action_text: #按键动作文本传感器（Idle:无动作 Click:单击 Double-click：双击 Triple-click：三击 Long press：长按），可配置一到多个，示例为多个
-    name: button text
+    name: Button Text
     button: 0 # 可选，配置按钮编号（0-9），默认任意按钮
+  battery_level: # 电池电量
+    name: Button Battery
   on_click: # 单击示例
     - button: 0
       then:

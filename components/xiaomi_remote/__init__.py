@@ -114,18 +114,12 @@ CONFIG_SCHEMA = (
                     }
                 )
             ),
-            cv.Optional(CONF_BATTERY_LEVEL): cv.ensure_list(
-                sensor.sensor_schema(
-                    unit_of_measurement=UNIT_PERCENT,
-                    icon=ICON_EMPTY,
-                    accuracy_decimals=0,
-                    device_class=DEVICE_CLASS_BATTERY,
-                    state_class=STATE_CLASS_MEASUREMENT,
-                ).extend(
-                    {
-                        cv.Optional(CONF_BUTTON): cv.int_range(min=0, max=9),
-                    }
-                )
+            cv.Optional(CONF_BATTERY_LEVEL): sensor.sensor_schema(
+                unit_of_measurement=UNIT_PERCENT,
+                icon=ICON_EMPTY,
+                accuracy_decimals=0,
+                device_class=DEVICE_CLASS_BATTERY,
+                state_class=STATE_CLASS_MEASUREMENT,
             ),
             cv.Optional(CONF_ON_CLICK): trigger_schema(ClickTrigger),
             cv.Optional(CONF_ON_DOUBLE_CLICK): trigger_schema(DoubleClickTrigger),
@@ -163,6 +157,7 @@ async def to_code(config):
         cg.add(var.register_listener(sens))
         if CONF_BUTTON in conf:
             cg.add(sens.set_button_index(conf[CONF_BUTTON]))
+
     if CONF_BATTERY_LEVEL in config:
         sens = await sensor.new_sensor(config[CONF_BATTERY_LEVEL])
         cg.add(var.set_battery_level(sens))
