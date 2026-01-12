@@ -43,9 +43,8 @@ def validate_min_max(config):
 
 MOVING_NUMBER_SCHEMA = cv.Any(
     cv.int_range(min=0, max=99999),
-    number.NUMBER_SCHEMA.extend(
+    number.number_schema(ThresholdMovingNumber).extend(
         {
-            cv.GenerateID(): cv.declare_id(ThresholdMovingNumber),
             cv.Optional(CONF_VALUE, default=250): cv.float_,
             cv.Optional(CONF_MAX_VALUE, default=3000): cv.float_,
             cv.Optional(CONF_MIN_VALUE, default=10): cv.float_,
@@ -57,9 +56,8 @@ MOVING_NUMBER_SCHEMA = cv.Any(
 
 OCCUPANCY_NUMBER_SCHEMA = cv.Any(
     cv.int_range(min=0, max=99999),
-    number.NUMBER_SCHEMA.extend(
+    number.number_schema(ThresholdOccupancyNumber).extend(
         {
-            cv.GenerateID(): cv.declare_id(ThresholdOccupancyNumber),
             cv.Optional(CONF_VALUE, default=250): cv.float_,
             cv.Optional(CONF_MAX_VALUE, default=3000): cv.float_,
             cv.Optional(CONF_MIN_VALUE, default=10): cv.float_,
